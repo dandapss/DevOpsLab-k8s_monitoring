@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-monitoring
+  namespace: minilab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-monitoring
+  template:
+    metadata:
+      labels:
+        app: k8s-monitoring
+    spec:
+      serviceAccountName: k8s-monitoring
+      containers:
+        - name: k8s-monitoring
+          image: k8s-monitoring:0.3.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
