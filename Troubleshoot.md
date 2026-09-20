@@ -5,14 +5,15 @@ The first Docker version had an HTTPServer constructor issue.
 The application was corrected and rebuilt.
 
 Image versions were developed incrementally:
-
-0.1.0
-0.2.1
-0.3.0
+1. 0.1.0
+2. 0.2.0
+3. 0.2.1
+4. 0.3.0
 
 The final version currently used by Kubernetes is:
+> k8s-monitoring:0.3.0
 
-k8s-monitoring:0.3.0
+
 2. Kubernetes RBAC 403 Error
 
 Initially, the exporter used the default ServiceAccount.
@@ -27,8 +28,9 @@ at the cluster scope
 The problem was solved by creating a dedicated ServiceAccount and RBAC configuration.
 
 After applying the RBAC configuration, permission verification returned:
+> yes
 
-yes
+
 3. Prometheus ImageInspectError
 
 Prometheus initially failed with an image inspection error related to the distroless Prometheus image.
@@ -49,6 +51,7 @@ helm upgrade monitoring prometheus-community/kube-prometheus-stack `
 
 Prometheus then started successfully.
 
+
 4. node-exporter CrashLoopBackOff
 
 node-exporter initially had a problem related to the Docker Desktop host filesystem mount.
@@ -60,6 +63,7 @@ helm upgrade monitoring prometheus-community/kube-prometheus-stack `
   --set prometheus-node-exporter.hostRootFsMount.enabled=false
 
 After the change, the monitoring stack became healthy.
+
 
 5. ServiceMonitor showed 0/0 targets
 
