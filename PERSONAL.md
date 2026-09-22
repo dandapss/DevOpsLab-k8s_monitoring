@@ -49,29 +49,16 @@ https://github.com/dandapss/DevOpsLab-k8s_monitoring
 - [ ] 첫 번째 Dashboard 생성
 - [ ] Pod Count Panel 생성
 - [ ] 가능하면 Kubernetes 관련 Panel 추가
+>>> 이건 21/9에 완료
 
----
+Prometheus PVC/PV
+Grafana PVC/PV
+Simple Grafana Dashboard
+Simple Grafana Alert
+Github Actions
+> Docker Build
+> GHCR Push
+> GHCR를 private으로 구성하여 진행. (더 복잡)
+> Self-hosted Runner (need to install)
+> Auto Dpeloy
 
-# 2. Python Exporter 개선
-
-현재 Metric:
-
-```text
-k8s_pod_count
-
-추가로 어떤 Kubernetes 상태를 모니터링하면 좋은지 고민하면서 Metric 추가.
-
-후보:
-
- Namespace별 Pod 수
- Pod 상태
- Pod Restart Count
- Deployment replica 상태
- Node 상태
- Job 상태
-
-중요:
-
-단순히 Metric을 많이 만드는 것이 목적이 아니다.
-
-"운영자가 실제로 보고 싶은 정보가 무엇인가?"를 생각하면서 추가한다.
