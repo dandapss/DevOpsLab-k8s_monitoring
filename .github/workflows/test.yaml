@@ -8,4 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - run: echo "Hello DevOps"
+      - run: pwd
+      - run: whoami
+      - run: ls -la
