@@ -41,7 +41,7 @@ jobs:
           tags: |
             ghcr.io/dandapss/custom-exporter:latest
             ghcr.io/dandapss/custom-exporter:${{ github.sha }}
-            
+
       - name: Create File
         run: echo hello > result.txt
 		
