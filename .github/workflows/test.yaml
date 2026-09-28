@@ -20,6 +20,5 @@ jobs:
       - name: Build Image
         run: docker build -t custom-exporter:test .
       - name: Build Image-Fail
-        if: ${{ failure() }}
-        run: echo "Build Process Failed!"
-	  
+        if: failure()
+        run: echo "build process failed!"
