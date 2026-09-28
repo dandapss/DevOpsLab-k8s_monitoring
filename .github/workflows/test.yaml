@@ -22,7 +22,7 @@ jobs:
       - name: Build Image-Fail
         if: failure()
         run: echo "Build Process Failed!"
-       
+	  
       - name: Security Check
         run: echo "Security Scan"
 		
