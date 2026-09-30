@@ -63,8 +63,6 @@ Github Actions
 > Auto Dpeloy
 
 ```
-/// 9월 29일 추가 내용. helm을 이용한 k8s 구성. cluterrole 및 clusterrolebinding은 굳이 Release.Name을 쓸 필요는 없어보임.
-
 ### My Application Pod
 
 # Chart.yaml
@@ -87,9 +85,10 @@ app:
   label: k8s-resource-monitoring
 
 container:
-  port: 
-    monitor: 8080
-    service: 9090
+  port: 8080
+
+service:
+  port: 9090
 
 
 ---
@@ -118,9 +117,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: {{ .Values.container.port.monitor }}		
-			
-			
+            - containerPort: {{ .Values.container.port }}       
+            
+            
 ---
 ### templates/
 
@@ -142,11 +141,17 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata: 
   name: {{ .Release.Name }}-crole
+  annotations:
+    owner: "Seob"
+    description: "Only for Monitoring Application"
 rules:
   - apiGroups: [""]
-    resources: ["*"] # 여긴 Python App에서 무슨 정보를 긁어다 사용할지 확인해 보고 변경. 
+    resources: ["pods", "nodes"]
     verbs: ["get", "list"]
 
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list"]
 
 ---
 ### templates/
@@ -177,11 +182,35 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}-svc
   namespace: {{ .Release.Namespace }}
+  labels: 
+    app: {{ .Values.app.label }}
 spec:
   type: ClusterIP
   selector:
     app: {{ .Values.app.label }}
   ports:
     - name: monitor
-      port: {{ .Values.container.port.service }}	
-      targetPort: {{ .Values.container.port.monitor }}	
+      port: {{ .Values.service.port }}    
+      targetPort: {{ .Values.container.port }}
+
+
+---
+### templates/
+
+# ServiceMonitor.yaml
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-svcmonitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.app.label }}
+  endpoints:
+  - port: monitor
+    interval: 15s
+    path: /metrics
