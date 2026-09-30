@@ -62,3 +62,126 @@ Github Actions
 > Self-hosted Runner (need to install)
 > Auto Dpeloy
 
+```
+/// 9월 29일 추가 내용. helm을 이용한 k8s 구성. cluterrole 및 clusterrolebinding은 굳이 Release.Name을 쓸 필요는 없어보임.
+
+### My Application Pod
+
+# Chart.yaml
+apiVersion: v2
+name: helm_test
+version: 1.0.0
+appVersion: "1.0.0"
+
+
+---
+# values.yaml
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/dandapss/custom-exporter
+  tag: latest
+
+app:
+  label: k8s-resource-monitoring
+
+container:
+  port: 
+    monitor: 8080
+    service: 9090
+
+
+---
+### templates/
+
+# Deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deploy
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.label }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.label }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-svcacc
+      containers:
+        - name: k8s-monitoring
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.container.port.monitor }}		
+			
+			
+---
+### templates/
+
+# ServiceAccount.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-svcacc
+  namespace: {{ .Release.Namespace }}
+  
+ 
+---
+### templates/
+
+# ClusterRole.yaml
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: 
+  name: {{ .Release.Name }}-crole
+rules:
+  - apiGroups: [""]
+    resources: ["*"] # 여긴 Python App에서 무슨 정보를 긁어다 사용할지 확인해 보고 변경. 
+    verbs: ["get", "list"]
+
+
+---
+### templates/
+
+# ClusterRoleBinding.yaml
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-crolebinding
+subjects:
+- kind: ServiceAccount
+  name: {{ .Release.Name }}-svcacc
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Release.Name }}-crole
+  apiGroup: rbac.authorization.k8s.io
+
+
+---
+### templates/
+
+# Service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-svc
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Values.app.label }}
+  ports:
+    - name: monitor
+      port: {{ .Values.container.port.service }}	
+      targetPort: {{ .Values.container.port.monitor }}	
