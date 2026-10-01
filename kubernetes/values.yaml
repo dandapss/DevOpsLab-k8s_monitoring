@@ -1,0 +1,14 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/dandapss/custom-exporter
+  tag: latest
+
+app:
+  label: k8s-resource-monitoring
+
+container:
+  port: 8080
+
+service:
+  port: 9090
