@@ -18,7 +18,7 @@ jobs:
         run: ls -la
 
       - name: Build Image
-        run: docker build -t custom-exporter:test .
+        run: docker build -t helm-monitor:test .
       - name: Build Image-Fail
         if: failure()
         run: echo "build process failed!"
@@ -39,8 +39,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/dandapss/custom-exporter:latest
-            ghcr.io/dandapss/custom-exporter:${{ github.sha }}
+            ghcr.io/dandapss/helm-monitor:latest
+            ghcr.io/dandapss/helm-monitor:${{ github.sha }}
 
       - name: Create File
         run: echo hello > result.txt
