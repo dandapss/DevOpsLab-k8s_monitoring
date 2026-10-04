@@ -1,0 +1,30 @@
+grafana:
+  enabled: false
+
+nodeExporter:
+  enabled: false
+
+prometheus:
+  enabled: true
+  prometheusSpec:
+    serviceMonitorSelector:
+      matchLabels:
+        release: monitoring
+    serviceMonitorNamespaceSelector: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 500Mi
+
+prometheusOperator:
+  enabled: true
+
+alertmanager:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
