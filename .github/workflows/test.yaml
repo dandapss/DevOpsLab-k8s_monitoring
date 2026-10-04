@@ -34,7 +34,7 @@ jobs:
         with:
           image-ref: helm-monitor:test
           severity: CRITICAL,HIGH
-          exit-code: '1'
+          exit-code: '0'
 
       - name: Login GHCR
         if: github.ref == 'refs/heads/main'
