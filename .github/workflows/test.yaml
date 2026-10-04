@@ -30,7 +30,7 @@ jobs:
         run: docker build -t helm-monitor:test .
 
       - name: Security Scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: helm-monitor:test
           severity: CRITICAL,HIGH
