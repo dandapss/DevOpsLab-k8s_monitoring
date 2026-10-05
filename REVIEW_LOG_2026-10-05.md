@@ -73,3 +73,14 @@ k8s_nodes_ready / clamp_min(k8s_nodes_total, 1)
 ## 확인 한계
 
 요청 범위에 맞춰 저장소를 읽고 코드를 수정했으며 Kubernetes에 배포하거나 실행 검증을 하지는 않았다. 테스트 실행, Docker image build/push, Helm 설치/업그레이드, Argo CD/Grafana 변경도 하지 않았다. 특히 신규 securityContext의 `runAsUser: 10001`과 read-only filesystem이 실제 이미지/클러스터 정책과 호환되는지 배포 후 확인이 필요하다.
+
+## 2026-10-05 최근 수정분 재검토
+
+- 현재 저장소 상태를 다시 확인했다. 시작 시점의 Git working tree는 clean이었다.
+- `README.md`를 포트폴리오용 짧은 영어 문서로 다시 썼다. 현재 exporter 기능, Helm/RBAC, Prometheus/Grafana, Argo CD, 파일 구조와 로컬 workflow를 설명한다.
+- `kubernetes/templates/deployment.yaml` readinessProbe를 `/healthz`에서 `/readyz`로 변경했다. `src/main.py`의 `/readyz`는 Kubernetes API 접근을 확인하므로 liveness의 `/healthz`와 목적이 구분된다. 수정 위치에 YAML 주석을 추가했다.
+- 파일 삭제는 하지 않았다. `PERSONAL.md`는 완료 여부가 오래된 체크리스트와 복사된 차트 예제가 들어 있어 정리/보관 후보지만, 삭제 전 사용자 승인이 필요하다. `tests/test_main.py`는 현재 내용이 `assert True`뿐이나 workflow가 실행하므로 삭제보다 실제 테스트로 채우는 편이 낫다. `.pytest_cache`는 도구 권한 경고로 상세 확인하지 않았다.
+- `.github/workflows/test.yaml`은 수동 실행 workflow이며 `packages: write`가 전체 workflow에 주어지고, Trivy `exit-code: '0'`이라 취약점이 있어도 실패하지 않는다. `tests/test_main.py`도 실질적인 기능 검증은 하지 않는다. 이를 바꾸지는 않았다.
+- `argocd/helm-monitor.yaml`은 자동 sync의 `prune: true`를 사용한다. 추후 차트에서 리소스 manifest를 제거하면 Argo CD가 클러스터 리소스를 삭제할 수 있으므로, 관련 변경은 적용 전 sync preview/diff를 확인해야 한다. 설정은 변경하지 않았다.
+- `kubernetes/temp_app.yaml`의 Base64 Secret 샘플 문제는 이전 검토와 동일하다. 파일이나 Git history를 삭제/수정하지 않았다.
+- 코드 테스트, 이미지 build/push, Helm 렌더/배포, Argo CD/Grafana 런타임 상태 확인은 이번에도 하지 않았다. `git diff --check`만 수행했다.
