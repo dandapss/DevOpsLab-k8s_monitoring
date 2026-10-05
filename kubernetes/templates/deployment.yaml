@@ -38,7 +38,7 @@ spec:
             periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: {{ .Values.container.port }}
             initialDelaySeconds: 5
             periodSeconds: 15
