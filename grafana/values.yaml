@@ -4,3 +4,6 @@ persistence:
   accessModes:
     - ReadWriteOnce
   size: 500Mi
+
+initChownData:
+  enabled: false
