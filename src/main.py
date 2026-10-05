@@ -1,281 +1,170 @@
-# 웹 서버 기능 제공
-from http.server import BaseHTTPRequestHandler, HTTPServer
+"""Read-only Kubernetes resource exporter for Prometheus."""
 
-# Kubernetes API 사용
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from threading import Lock
+from urllib.parse import urlsplit
+
 from kubernetes import client, config
+from kubernetes.config.config_exception import ConfigException
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Gauge, generate_latest
 
-# Prometheus Metric 생성
-from prometheus_client import (
-    Gauge,
-    generate_latest,
-    CONTENT_TYPE_LATEST
+
+try:
+    config.load_incluster_config()
+except ConfigException:
+    # Allows local development with the user's current kubeconfig.
+    config.load_kube_config()
+
+core_api = client.CoreV1Api()
+apps_api = client.AppsV1Api()
+registry = CollectorRegistry()
+metrics_lock = Lock()
+
+pods_by_phase = Gauge(
+    "k8s_pods", "Number of pods by namespace and phase", ["namespace", "phase"], registry=registry
 )
-
-# 현재 Pod 내부에서 실행중이라고 가정
-# ServiceAccount 정보를 이용해 K8S API 접속
-config.load_incluster_config()
-
-# CoreV1 API 객체 생성
-v1 = client.CoreV1Api()
-
-# =======================================
-# Prometheus Metrics 정의
-# =======================================
-
-# 전체 Pod 수
-pods_total = Gauge(
-    "k8s_pods_total",
-    "Total number of pods"
+nodes_total = Gauge("k8s_nodes_total", "Total number of nodes", registry=registry)
+nodes_ready = Gauge("k8s_nodes_ready", "Number of Ready nodes", registry=registry)
+namespaces_total = Gauge("k8s_namespaces_total", "Total number of namespaces", registry=registry)
+namespace_resources = Gauge(
+    "k8s_namespace_resources",
+    "Number of supported resources in a namespace",
+    ["namespace", "resource"],
+    registry=registry,
 )
-
-# Running 상태 Pod 수
-pods_running = Gauge(
-    "k8s_pods_running",
-    "Running pods"
-)
-
-# Pending 상태 Pod 수
-pods_pending = Gauge(
-    "k8s_pods_pending",
-    "Pending pods"
-)
-
-# Failed 상태 Pod 수
-pods_failed = Gauge(
-    "k8s_pods_failed",
-    "Failed pods"
-)
-
-# 전체 Node 수
-nodes_total = Gauge(
-    "k8s_nodes_total",
-    "Total number of nodes"
-)
-
-# Ready 상태 Node 수
-nodes_ready = Gauge(
-    "k8s_nodes_ready",
-    "Ready nodes"
-)
-
-# 전체 Namespace 수
-namespaces_total = Gauge(
-    "k8s_namespaces_total",
-    "Total number of namespaces"
+deployment_replicas = Gauge(
+    "k8s_deployment_replicas",
+    "Deployment replica counts by namespace and deployment",
+    ["namespace", "deployment", "state"],
+    registry=registry,
 )
 
 
-# =======================================
-# 메트릭 수집 함수
-# =======================================
 def collect_metrics():
+    """Refresh metrics from live API objects; values in manifest files are not assumed."""
+    pods = core_api.list_pod_for_all_namespaces(_request_timeout=5).items
+    nodes = core_api.list_node(_request_timeout=5).items
+    namespaces = core_api.list_namespace(_request_timeout=5).items
+    deployments = apps_api.list_deployment_for_all_namespaces(_request_timeout=5).items
+    services = core_api.list_service_for_all_namespaces(_request_timeout=5).items
+    config_maps = core_api.list_config_map_for_all_namespaces(_request_timeout=5).items
 
-    # 모든 Namespace의 Pod 조회
-    pods = v1.list_pod_for_all_namespaces().items
+    # Clear labeled series so deleted objects/namespaces disappear from Prometheus.
+    pods_by_phase.clear()
+    namespace_resources.clear()
+    deployment_replicas.clear()
 
-    # 전체 Pod 수
-    pods_total.set(len(pods))
+    pod_counts = {}
+    for pod in pods:
+        namespace = pod.metadata.namespace or "default"
+        phase = pod.status.phase or "Unknown"
+        pod_counts[(namespace, phase)] = pod_counts.get((namespace, phase), 0) + 1
+    for (namespace, phase), count in pod_counts.items():
+        pods_by_phase.labels(namespace, phase).set(count)
 
-    # Running 상태 Pod 수 계산
-    pods_running.set(
-        sum(
-            1 for pod in pods
-            if pod.status.phase == "Running"
-        )
-    )
-
-    # Pending 상태 Pod 수 계산
-    pods_pending.set(
-        sum(
-            1 for pod in pods
-            if pod.status.phase == "Pending"
-        )
-    )
-
-    # Failed 상태 Pod 수 계산
-    pods_failed.set(
-        sum(
-            1 for pod in pods
-            if pod.status.phase == "Failed"
-        )
-    )
-
-    # 모든 Node 조회
-    nodes = v1.list_node().items
-
-    # 전체 Node 수
     nodes_total.set(len(nodes))
-
-    ready_nodes = 0
-
-    # Node Condition 확인
-    for node in nodes:
-
-        for condition in node.status.conditions:
-
-            # Ready=True인 Node만 카운트
-            if (
-                condition.type == "Ready"
-                and condition.status == "True"
-            ):
-                ready_nodes += 1
-
-    nodes_ready.set(ready_nodes)
-
-    # Namespace 전체 조회
-    namespaces = v1.list_namespace().items
-
-    # Namespace 수 저장
+    nodes_ready.set(
+        sum(
+            1
+            for node in nodes
+            if any(c.type == "Ready" and c.status == "True" for c in (node.status.conditions or []))
+        )
+    )
     namespaces_total.set(len(namespaces))
 
+    resource_counts = {}
+    for resource, objects in (("deployments", deployments), ("services", services), ("configmaps", config_maps)):
+        for obj in objects:
+            namespace = obj.metadata.namespace or "default"
+            resource_counts[(namespace, resource)] = resource_counts.get((namespace, resource), 0) + 1
+    for (namespace, resource), count in resource_counts.items():
+        namespace_resources.labels(namespace, resource).set(count)
 
-# =======================================
-# HTTP 요청 처리
-# =======================================
+    for deployment in deployments:
+        namespace = deployment.metadata.namespace or "default"
+        name = deployment.metadata.name
+        status = deployment.status
+        spec = deployment.spec
+        deployment_replicas.labels(namespace, name, "desired").set(spec.replicas or 0)
+        deployment_replicas.labels(namespace, name, "ready").set(status.ready_replicas or 0)
+        deployment_replicas.labels(namespace, name, "available").set(status.available_replicas or 0)
+
+    return {
+        "pods": pods,
+        "nodes": nodes,
+        "namespaces": namespaces,
+        "deployments": deployments,
+        "services": services,
+        "configmaps": config_maps,
+    }
+
+
+def cluster_summary(snapshot):
+    pods = snapshot["pods"]
+    nodes = snapshot["nodes"]
+    ready = sum(
+        1
+        for node in nodes
+        if any(c.type == "Ready" and c.status == "True" for c in (node.status.conditions or []))
+    )
+    phases = {}
+    for pod in pods:
+        phase = pod.status.phase or "Unknown"
+        phases[phase] = phases.get(phase, 0) + 1
+    return (
+        f"Namespaces: {len(snapshot['namespaces'])}\n"
+        f"Pods: {len(pods)} (" + ", ".join(f"{k}={v}" for k, v in sorted(phases.items())) + ")\n"
+        f"Nodes: {len(nodes)} (Ready={ready})\n"
+        f"Deployments: {len(snapshot['deployments'])}\n"
+        f"Services: {len(snapshot['services'])}\n"
+        f"ConfigMaps: {len(snapshot['configmaps'])}\n"
+    ).encode()
+
+
 class Handler(BaseHTTPRequestHandler):
-
     def do_GET(self):
+        path = urlsplit(self.path).path
+        if path == "/":
+            self._respond(200, b"Kubernetes Monitor\n/healthz /readyz /cluster /metrics\n")
+        elif path == "/healthz":
+            self._respond(200, b"OK\n")
+        elif path == "/readyz":
+            try:
+                core_api.list_namespace(limit=1, _request_timeout=5)
+                self._respond(200, b"Ready\n")
+            except client.ApiException:
+                self._respond(503, b"Kubernetes API unavailable\n")
+            except Exception:
+                self._respond(503, b"Kubernetes API unavailable\n")
+        elif path in ("/cluster", "/metrics"):
+            try:
+                # Gauges are refreshed in place; serialize refreshes and scrape output.
+                with metrics_lock:
+                    snapshot = collect_metrics()
+                    output = generate_latest(registry) if path == "/metrics" else None
+            except client.ApiException:
+                self._respond(503, b"Kubernetes API request failed\n")
+                return
+            except Exception:
+                self._respond(503, b"Kubernetes API request failed\n")
+                return
 
-        # -----------------------------------
-        # /
-        # 메인 페이지
-        # -----------------------------------
-        if self.path == "/":
-
-            message = b"""Kubernetes Monitor
-
-Available Endpoints:
-/
-/healthz
-/cluster
-/metrics
-"""
-
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "text/plain"
-            )
-            self.end_headers()
-
-            self.wfile.write(message)
-
-        # -----------------------------------
-        # /healthz
-        # Health Check
-        # -----------------------------------
-        elif self.path == "/healthz":
-
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "text/plain"
-            )
-            self.end_headers()
-
-            self.wfile.write(b"OK")
-
-        # -----------------------------------
-        # /cluster
-        # 사람이 보기 쉬운 상태 요약
-        # -----------------------------------
-        elif self.path == "/cluster":
-
-            pods = v1.list_pod_for_all_namespaces().items
-            nodes = v1.list_node().items
-            namespaces = v1.list_namespace().items
-
-            running = sum(
-                1
-                for pod in pods
-                if pod.status.phase == "Running"
-            )
-
-            pending = sum(
-                1
-                for pod in pods
-                if pod.status.phase == "Pending"
-            )
-
-            failed = sum(
-                1
-                for pod in pods
-                if pod.status.phase == "Failed"
-            )
-
-            ready_nodes = 0
-
-            for node in nodes:
-
-                for condition in node.status.conditions:
-
-                    if (
-                        condition.type == "Ready"
-                        and condition.status == "True"
-                    ):
-                        ready_nodes += 1
-
-            message = f"""
-Namespaces : {len(namespaces)}
-
-Pods Total : {len(pods)}
-Pods Running : {running}
-Pods Pending : {pending}
-Pods Failed : {failed}
-
-Nodes Total : {len(nodes)}
-Nodes Ready : {ready_nodes}
-""".encode()
-
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "text/plain"
-            )
-            self.end_headers()
-
-            self.wfile.write(message)
-
-        # -----------------------------------
-        # /metrics
-        # Prometheus가 가져가는 Endpoint
-        # -----------------------------------
-        elif self.path == "/metrics":
-
-            # K8S 정보 가져오기
-            collect_metrics()
-
-            # Prometheus 형식 생성
-            output = generate_latest()
-
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                CONTENT_TYPE_LATEST
-            )
-            self.end_headers()
-
-            self.wfile.write(output)
-
-        # -----------------------------------
-        # 존재하지 않는 URL
-        # -----------------------------------
+            if path == "/cluster":
+                self._respond(200, cluster_summary(snapshot))
+            else:
+                self._respond(200, output, CONTENT_TYPE_LATEST)
         else:
+            self._respond(404, b"Not Found\n")
 
-            self.send_response(404)
-            self.end_headers()
+    def _respond(self, status, body, content_type="text/plain; charset=utf-8"):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
-# =======================================
-# 웹 서버 시작
-# =======================================
-
-server = HTTPServer(
-    ("0.0.0.0", 8080),
-    Handler
-)
-
-print("Kubernetes Monitor running on port 8080")
-
-# 무한 대기
-server.serve_forever()
+if __name__ == "__main__":
+    server = ThreadingHTTPServer(("0.0.0.0", 8080), Handler)
+    print("Kubernetes Monitor running on port 8080", flush=True)
+    server.serve_forever()

@@ -7,7 +7,7 @@ metadata:
     description: "Only for Monitoring Application"
 rules:
   - apiGroups: [""]
-    resources: ["pods", "nodes", "namespaces"]
+    resources: ["pods", "nodes", "namespaces", "services", "configmaps"]
     verbs: ["get", "list"]
 
   - apiGroups: ["apps"]
