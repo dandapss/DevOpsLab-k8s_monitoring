@@ -51,7 +51,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/dandapss/helm-monitor:latest
+            ghcr.io/dandapss/helm-monitor:1:0:0
             ghcr.io/dandapss/helm-monitor:${{ github.sha }}
 
       - name: Create File
