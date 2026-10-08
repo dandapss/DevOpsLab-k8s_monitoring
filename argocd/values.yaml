@@ -1,0 +1,4 @@
+repoServer:
+  env:
+    - name: GIT_SSL_NO_VERIFY
+      value: "true"
