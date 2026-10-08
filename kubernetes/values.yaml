@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: ghcr.io/dandapss/helm-monitor
-  tag: d1fb24ff850359593c97ad864e8a72eee07154d5
+  tag: 4fdcd1fb2fed37c4dab27e7fc81c5f74884c9813
 
 app:
   label: k8s-resource-monitoring
