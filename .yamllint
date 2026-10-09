@@ -1,7 +1,7 @@
 extendds: default
 
 ignore: |
-  kubernetes/templates/
+  kubernetes/helm-monitor/templates/
 
 rules:
   line-length: disable

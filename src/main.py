@@ -138,7 +138,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(503, b"Kubernetes API unavailable\n")
         elif path in ("/cluster", "/metrics"):
             try:
-                # Gauges are refreshed in place; serialize refreshes and scrape output.
+                # Gauges are refreshed in place; serialize refreshes and scrape output
                 with metrics_lock:
                     snapshot = collect_metrics()
                     output = generate_latest(registry) if path == "/metrics" else None
