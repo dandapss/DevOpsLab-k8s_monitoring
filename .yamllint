@@ -1,4 +1,4 @@
-extendds: default
+extends: default
 
 ignore: |
   kubernetes/helm-monitor/templates/

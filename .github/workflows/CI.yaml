@@ -1,4 +1,5 @@
-name: Work Flow Practice
+# Updated 2026-10-09: keep image builds limited to image inputs; validate manifests separately.
+name: Kubernetes monitor CI
 
 on:
   push:
@@ -6,66 +7,102 @@ on:
       - main
     paths:
       - 'src/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - 'kubernetes/**'
+      - '.github/workflows/CI.yaml'
+      - '.yamllint'
   workflow_dispatch:
+    inputs:
+      build_image:
+        description: Build, scan, and publish an image
+        required: false
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   changes:
     runs-on: ubuntu-latest
-
     outputs:
-      build: ${{ steps.filter.outputs.build }}
-
+      image: ${{ steps.filter.outputs.image }}
+      python: ${{ steps.filter.outputs.python }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: dorny/paths-filter@v3
+        if: github.event_name == 'push'
         id: filter
         with:
           filters: |
-            build:
+            image:
               - 'Dockerfile'
-              - 'src/*.py'
+              - 'src/**'
               - 'requirements.txt'
-      - name: Debug filter result
-        run: |
-          echo "build=${{steps.filter.outputs.build}}"
+            python:
+              - 'src/**'
+              - 'tests/**'
+              - 'requirements.txt'
+              - 'Dockerfile'
 
-  docker-build:
+  python-test:
     needs: changes
-    if: needs.changes.outputs.build == 'true'
-
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.python == 'true'
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate Dockerfile
-        run: test -f Dockerfile
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      - name: Run Python test
+      - name: Run pytest
         run: pytest
 
-      - name: Docker Image build
+  manifest-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: YAML lint
+        run: yamllint .
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+      - name: Helm lint
+        run: helm lint kubernetes/helm-monitor
+
+  docker-build:
+    needs: [changes, python-test]
+    if: >-
+      (github.event_name == 'push' && needs.changes.outputs.image == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+    permissions:
+      contents: write
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
         run: |
           docker build \
-          -t ghcr.io/dandapss/helm-monitor:${{ github.sha }} \
-          -t ghcr.io/dandapss/helm-monitor:latest \
-          .
-
-      - name: Security Scan
+            -t ghcr.io/dandapss/helm-monitor:${{ github.sha }} \
+            -t ghcr.io/dandapss/helm-monitor:latest \
+            .
+      - name: Trivy vulnerability report
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/dandapss/helm-monitor:${{ github.sha }}
+          scanners: vuln
           severity: CRITICAL,HIGH
+          format: table
+          # Report-only for now: review compatibility-related HIGH findings before enabling a blocking threshold.
           exit-code: '0'
-
       - name: Login GHCR
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
@@ -73,42 +110,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Images
+      - name: Push images
+        if: github.ref == 'refs/heads/main'
         run: |
           docker push ghcr.io/dandapss/helm-monitor:${{ github.sha }}
           docker push ghcr.io/dandapss/helm-monitor:latest
-
       - name: Update image tag
-        run: |
-          sed -i "s|tag:.*|tag: ${{ github.sha }}|" kubernetes/helm-monitor/values.yaml
-
-      - name: Commit and Push image tag
+        if: github.ref == 'refs/heads/main'
+        run: sed -i "s|tag:.*|tag: ${{ github.sha }}|" kubernetes/helm-monitor/values.yaml
+      - name: Commit and push image tag
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add kubernetes/helm-monitor/values.yaml
-          git commit -m "Update image tag to ${{ github.sha }} [skip ci]"
-          git push
-
-  Manifest:
-    needs: docker-build
-    if: always()
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install yamllint
-        run: pip install yamllint
-
-      - name: YAML Lint
-        run: yamllint .
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-
-      - name: Helm Check
-        run: helm lint kubernetes/helm-monitor
-
+          if ! git diff --cached --quiet; then
+            git commit -m "Update image tag to ${{ github.sha }} [skip ci]"
+            git push
+          fi

@@ -1,4 +1,5 @@
-replicaCount: 3
+# Two replicas provide process redundancy; cluster-wide metrics are identical per replica.
+replicaCount: 2
 
 image:
   repository: ghcr.io/dandapss/helm-monitor

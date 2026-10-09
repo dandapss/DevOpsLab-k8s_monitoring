@@ -5,7 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/main.py .
+# Keep the tested pure helpers alongside the exporter entry point.
+COPY src/ .
 
 EXPOSE 8080
 

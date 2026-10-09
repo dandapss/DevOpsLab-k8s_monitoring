@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from kubernetes import client, config
 from kubernetes.config.config_exception import ConfigException
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Gauge, generate_latest
+from metric_helpers import count_by
 
 
 try:
@@ -54,11 +55,10 @@ def collect_metrics():
     namespace_resources.clear()
     deployment_replicas.clear()
 
-    pod_counts = {}
-    for pod in pods:
-        namespace = pod.metadata.namespace or "default"
-        phase = pod.status.phase or "Unknown"
-        pod_counts[(namespace, phase)] = pod_counts.get((namespace, phase), 0) + 1
+    pod_counts = count_by(
+        pods,
+        lambda pod: (pod.metadata.namespace or "default", pod.status.phase or "Unknown"),
+    )
     for (namespace, phase), count in pod_counts.items():
         pods_by_phase.labels(namespace, phase).set(count)
 
@@ -72,11 +72,12 @@ def collect_metrics():
     )
     namespaces_total.set(len(namespaces))
 
-    resource_counts = {}
+    resource_items = []
     for resource, objects in (("deployments", deployments), ("services", services), ("configmaps", config_maps)):
         for obj in objects:
             namespace = obj.metadata.namespace or "default"
-            resource_counts[(namespace, resource)] = resource_counts.get((namespace, resource), 0) + 1
+            resource_items.append((namespace, resource))
+    resource_counts = count_by(resource_items, lambda item: item)
     for (namespace, resource), count in resource_counts.items():
         namespace_resources.labels(namespace, resource).set(count)
 
