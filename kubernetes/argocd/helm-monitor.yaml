@@ -9,11 +9,11 @@ spec:
   source:
     repoURL: https://github.com/dandapss/DevOpsLab-k8s_monitoring.git
     targetRevision: main
-    path: kubernetes
+    path: kubernetes/helm-monitor
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: minilab
+    namespace: helm-monitor
 
   syncPolicy:
     automated:
