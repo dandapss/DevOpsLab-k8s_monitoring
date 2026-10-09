@@ -30,6 +30,9 @@ jobs:
               - 'Dockerfile'
               - 'src/*.py'
               - 'requirements.txt'
+      - name: Debug filter result
+        run: |
+          echo "build=${{steps.filter.outputs.build}}"
 
   docker-build:
     needs: changes
