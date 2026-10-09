@@ -107,5 +107,5 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm Check
-        run: helm lint kubernetes
+        run: helm lint kubernetes/helm-monitor
 
