@@ -32,6 +32,9 @@ jobs:
       python: ${{ steps.filter.outputs.python }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # paths-filter compares the pushed commit with its base in Git history.
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         if: github.event_name == 'push'
         id: filter
@@ -79,9 +82,7 @@ jobs:
 
   docker-build:
     needs: [changes, python-test]
-    if: >-
-      (github.event_name == 'push' && needs.changes.outputs.image == 'true') ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_image)
+    if: ${{ (github.event_name == 'push' && needs.changes.outputs.image == 'true') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_image == 'true') }}
     permissions:
       contents: write
       packages: write
