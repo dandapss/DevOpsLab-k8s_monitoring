@@ -1,0 +1,8 @@
+extendds: default
+
+ignore: |
+  kubernetes/templates/
+
+rules:
+  line-length: disable
+  document-start: disable
