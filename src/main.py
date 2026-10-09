@@ -168,4 +168,3 @@ if __name__ == "__main__":
     server = ThreadingHTTPServer(("0.0.0.0", 8080), Handler)
     print("Kubernetes Monitor running on port 8080", flush=True)
     server.serve_forever()
-    print("Give me result")
