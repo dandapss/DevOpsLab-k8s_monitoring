@@ -51,42 +51,42 @@ jobs:
 
       - name: Docker Image build
         run: |
-	  docker build \
-	    -t ghcr.io/dandapss/helm-monitor:${{ github.sha }} \
-	    -t ghcr.io/dandapss/helm-monitor:latest \
-	    .
+          docker build \
+          -t ghcr.io/dandapss/helm-monitor:${{ github.sha }} \
+          -t ghcr.io/dandapss/helm-monitor:latest \
+          .
 
       - name: Security Scan
         uses: aquasecurity/trivy-action@v0.36.0
-	with:
-	  image-ref: ghcr.io/dandapss/helm-monitor:${{ github.sha }}
-	  severity: CRITICAL,HIGH
-	  exit-code: '0'
+        with:
+          image-ref: ghcr.io/dandapss/helm-monitor:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: '0'
 
       - name: Login GHCR
-        if: github.ref == 'refs/heads/main'
-	uses: docker/login-action@v3
-	with:
-	  registry: ghcr.io
-	  username: ${{ github.actor }}
-	  password: ${{ secrets.GITHUB_TOKEN }}
+        if: github.ref == 'refs/heads/main'       
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Images
         run: |
-	  docker push ghcr.io/dandapss/helm-monitor:${{ github.sha }}
-	  docker push ghcr.io/dandapss/helm-monitor:latest
+          docker push ghcr.io/dandapss/helm-monitor:${{ github.sha }}
+          docker push ghcr.io/dandapss/helm-monitor:latest
 
       - name: Update image tag
         run: |
-	  sed -i "s/tag: ./tag: ${{ github.sha }}/" kubernetes.values.yaml
+          sed -i "s/tag: ./tag: ${{ github.sha }}/" kubernetes.values.yaml
 
       - name: Commit and Push image tag
         run: |
-	  git config user.name "github-actions[bot]"
-	  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-	  git add kubernetes.values.yaml
-	  git commit -m "Update image tag to ${{ github.sha }} [skip ci]"
-	  git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kubernetes.values.yaml
+          git commit -m "Update image tag to ${{ github.sha }} [skip ci]"
+          git push
 
   Manifest:
     needs: docker-build 
