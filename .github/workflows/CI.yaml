@@ -81,7 +81,7 @@ jobs:
 
       - name: Update image tag
         run: |
-          sed -i "s/tag: ./tag: ${{ github.sha }}/" kubernetes/helm-monitor/values.yaml
+          sed -i "s|tag: .|tag: ${{ github.sha }}|" kubernetes/helm-monitor/values.yaml
 
       - name: Commit and Push image tag
         run: |
