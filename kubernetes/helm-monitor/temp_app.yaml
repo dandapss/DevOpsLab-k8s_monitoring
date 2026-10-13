@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: monitor-test
+  name: test-monitor
 
 ---
 apiVersion: v1
@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-test
-  namespace: monitor-test
+  namespace: test-monitor
 spec:
   replicas: 2
   selector:
@@ -36,7 +36,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nginx-test
-  namespace: monitor-test
+  namespace: test-monitor
 spec:
   selector:
     app: nginx-test
@@ -49,7 +49,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-test
-  namespace: monitor-test
+  namespace: test-monitor
 spec:
   replicas: 1
   selector:
@@ -69,7 +69,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: sample-config
-  namespace: monitor-test
+  namespace: test-monitor
 data:
   environment: lab
   owner: seob
@@ -79,7 +79,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: sample-secret
-  namespace: monitor-test
+  namespace: test-monitor
 type: Opaque
 data:
   username: dGVzdA==

@@ -1,4 +1,15 @@
 
+Scope of this week (Oct 12 ~ Oct 18)
+1. Create Grafana Dashboard 1+
+2. Understand Python Custom Metric
+3. Check ArgoCD Self-Heal
+4. Create Alert + Discord
+5. Create at least 10 PromQL
+   ex. sum by(namespace)....
+       rate(......)
+6. Add one more Python Metric
+7. Play around with RBAC
+
 ---
 
 ## 2. `PERSONAL.md`
