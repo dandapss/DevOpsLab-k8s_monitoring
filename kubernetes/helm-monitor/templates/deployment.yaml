@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name}}-deploy
   namespace: {{ .Release.Namespace}}
+  annotations:
+    debug-tag: "{{ .Values.image.tag }}"
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
