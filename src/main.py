@@ -73,7 +73,7 @@ def collect_metrics():
     namespaces_total.set(len(namespaces))
 
     resource_counts = {}
-    for resource, objects in (("deployments", deployments), ("services", services), ("configmaps", config_maps)):
+    for resource, objects in (("deployments", deployments), ("services", services), ("configmaps", config_maps), ("pods", pods)):
         for obj in objects:
             namespace = obj.metadata.namespace or "default"
             resource_counts[(namespace, resource)] = resource_counts.get((namespace, resource), 0) + 1
