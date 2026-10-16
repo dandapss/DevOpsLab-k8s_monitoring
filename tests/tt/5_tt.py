@@ -8,7 +8,7 @@ apps1 = client.AppsV1Api()
 
 pods = v1.list_pod_for_all_namespaces().items
 deployments = apps1.list_deployment_for_all_namespaces().items
-namespaces = v1.list_namespace.items
+namespaces = v1.list_namespace().items
 
 #-------------#
 # Gauge Start #
@@ -23,16 +23,10 @@ pods_info = Gauge(
 deploy_info = Gauge(
   "k8s_deploy",
   "Deploys Info",
-  ["Namespace", "Deploy_Name", "State"]
-  )
-
-deploy_health = Gauge(
-  "k8s_deploy_health",
-  "Deployments Ready Rate",
   ["Namespace", "Deploy_Name"]
   )
 
-namespace_info = Gague(
+namespace_info = Gauge(
   "k8s_namespace",
   "Namespaces Info",
   ["NS_Name", "State"]
@@ -65,8 +59,7 @@ for pod in pods:
 
 for deploy in deployments:
   Namespace = deploy.metadata.namespace
-  Deploy_name = deploy.metadata.name
-  State = deploy.status.phase
+  Deploy_Name = deploy.metadata.name
   replica = deploy.spec.replicas
   readyReplica = deploy.status.ready_replicas
 
@@ -75,13 +68,7 @@ for deploy in deployments:
   else:
     rate = 100
 
-  deply_info.labels(
-    Namespace = Namespace,
-    Deploy_Name = Deploy_Name,
-    State = State
-    ).set(1)
-
-  deploy_health.labels(
+  deploy_info.labels(
     Namespace = Namespace,
     Deploy_Name = Deploy_Name,
     ).set(rate)
@@ -93,7 +80,7 @@ for namespace in namespaces:
   namespace_info.labels(
     NS_Name = NS_Name,
     State = State
-    ).set(len(namespaces))
+    ).set(1)
 
 #-----------#
 # Label End #
