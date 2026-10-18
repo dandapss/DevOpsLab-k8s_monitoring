@@ -41,7 +41,7 @@ spec:
           readinessProbe:
             httpGet:
               # Updated to /readyz: src/main.py checks Kubernetes API access here.
-              path: /readyz
+              path: /healthz
               port: {{ .Values.container.port }}
             initialDelaySeconds: 5
             periodSeconds: 15

@@ -152,8 +152,8 @@ class What_To_Get(BaseHTTPRequestHandler):
 #-----------#
 
 if __name__ == "__main__":
-  server = ThreadingHTTPServer(("0.0.0.0", 8000), What_To_Get)
-  print("Kubernetes exporter running on port 8000", flush=True)
+  server = ThreadingHTTPServer(("0.0.0.0", 8080), What_To_Get)
+  print("Kubernetes exporter running on port 8080", flush=True)
   server.serve_forever()
 
 #---------#
