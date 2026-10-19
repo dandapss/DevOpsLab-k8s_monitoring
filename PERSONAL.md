@@ -1,9 +1,17 @@
 
-Scope of this week (Oct 12 ~ Oct 18)
-1. Create Grafana Dashboard 1+
-2. Understand Python Custom Metric
-3. Check ArgoCD Self-Heal
-4. Create Alert + Discord
+Scope of this week (Oct 19 ~ Oct 25)
+1. Add metrics and create dashboard
+   - Restart Pods (pod.status.container_statuses)
+   - Old Pods (pod.metadata.creation_timestamp)
+   - Kubernetes event Export (v1.list_event_for_all_namespaces())
+2. Update README.MD
+3. Finish the Project
+
+Scope of this week (Oct 12 ~ Oct 18) - No need to continue.
+1. Create Grafana Dashboard 1+ [Done]
+2. Understand Python Custom Metric [Done]
+3. Check ArgoCD Self-Heal [Done]
+4. Create Alert + Discord 
 5. Create at least 10 PromQL
    ex. sum by(namespace)....
        rate(......)
@@ -73,155 +81,3 @@ Github Actions
 > Self-hosted Runner (need to install)
 > Auto Dpeloy
 
-```
-### My Application Pod
-
-# Chart.yaml
-apiVersion: v2
-name: helm_test
-version: 1.0.0
-appVersion: "1.0.0"
-
-
----
-# values.yaml
-
-replicaCount: 2
-
-image:
-  repository: ghcr.io/dandapss/custom-exporter
-  tag: latest
-
-app:
-  label: k8s-resource-monitoring
-
-container:
-  port: 8080
-
-service:
-  port: 9090
-
-
----
-### templates/
-
-# Deployment.yaml
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-deploy
-  namespace: {{ .Release.Namespace }}
-spec:
-  replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Values.app.label }}
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.app.label }}
-    spec:
-      serviceAccountName: {{ .Release.Name }}-svcacc
-      containers:
-        - name: k8s-monitoring
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: {{ .Values.container.port }}       
-            
-            
----
-### templates/
-
-# ServiceAccount.yaml
-
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: {{ .Release.Name }}-svcacc
-  namespace: {{ .Release.Namespace }}
-  
- 
----
-### templates/
-
-# ClusterRole.yaml
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata: 
-  name: {{ .Release.Name }}-crole
-  annotations:
-    owner: "Seob"
-    description: "Only for Monitoring Application"
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "nodes"]
-    verbs: ["get", "list"]
-
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list"]
-
----
-### templates/
-
-# ClusterRoleBinding.yaml
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ .Release.Name }}-crolebinding
-subjects:
-- kind: ServiceAccount
-  name: {{ .Release.Name }}-svcacc
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  kind: ClusterRole
-  name: {{ .Release.Name }}-crole
-  apiGroup: rbac.authorization.k8s.io
-
-
----
-### templates/
-
-# Service.yaml
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-svc
-  namespace: {{ .Release.Namespace }}
-  labels: 
-    app: {{ .Values.app.label }}
-spec:
-  type: ClusterIP
-  selector:
-    app: {{ .Values.app.label }}
-  ports:
-    - name: monitor
-      port: {{ .Values.service.port }}    
-      targetPort: {{ .Values.container.port }}
-
-
----
-### templates/
-
-# ServiceMonitor.yaml
-
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: {{ .Release.Name }}-svcmonitor
-  namespace: {{ .Release.Namespace }}
-  labels:
-    release: monitoring
-spec:
-  selector:
-    matchLabels:
-      app: {{ .Values.app.label }}
-  endpoints:
-  - port: monitor
-    interval: 15s
-    path: /metrics
