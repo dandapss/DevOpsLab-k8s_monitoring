@@ -52,13 +52,15 @@ pods_restart = Gauge(
 pods_age = Gauge(
   "pod_age",
   "Pod Age",
-  ["Namespace", "Pod_Name"]
+  ["Namespace", "Pod_Name"],
+  registry = registry
   )
 
 resource_event_warning = Gauge(
   "k8s_resource_event",
   "Resource Events Only Warning",
-  ["Namespace", "resource", "Name", "Type"]
+  ["Namespace", "Resource", "Name", "Reason"],
+  registry = registry
   )
 
 metrics_lock = Lock()
@@ -94,15 +96,15 @@ def collect_metrics():
     Seob_Pod_Restart = pod.status.container_statuses
     Seob_Pod_Created = pod.metadata.creation_timestamp
 
-    for status in Seob_Pod_Restart:
-      pods_restart.labels(
-        Namespace = Seob_Namespace,
-        Pod_Name = Seob_Pod_Name
-        ).set(status.restart_count)
+    restart_total = sum(status.restart_count for status in (Soeb_Pod_Restart or []))
+    pods_restart.labels(
+      Namespace = Seob_Namespace,
+      Pod_Name = Seob_Pod_Name
+      ).set(status.restart_count)
     
     now = datetime.now(timezone.utc)
-    age_time = Seob_Pod_Created - now
-    age = age_time.total_seconds() * 3600
+    age_time = now - Seob_Pod_Created
+    age = age_time.total_seconds() / 3600
     pods_age.labels(
       Namespace = Seob_Namespace,
       Pod_Name = Seob_Pod_Name
@@ -210,7 +212,6 @@ class What_To_Get(BaseHTTPRequestHandler):
 if __name__ == "__main__":
   server = ThreadingHTTPServer(("0.0.0.0", 8080), What_To_Get)
   print("Kubernetes exporter running on port 8080", flush=True)
-  collect_metrics()
   server.serve_forever()
 
 #---------#

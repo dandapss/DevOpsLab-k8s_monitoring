@@ -7,9 +7,11 @@ from prometheus_client import Gauge, CollectorRegistry, generate_latest, CONTENT
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 from threading import Lock
+from datetime import datetime, timezone
 
 
-config.load_incluster_config()
+#config.load_incluster_config()
+config.load_kube_config()
 
 v1 = client.CoreV1Api()
 apps1 = client.AppsV1Api()
@@ -40,6 +42,27 @@ namespace_info = Gauge(
   registry = registry
   )
 
+pods_restart = Gauge(
+  "pods_restart_count",
+  "Pods Restarts",
+  ["Namespace", "Pod_Name"],
+  registry = registry
+  )
+
+pods_age = Gauge(
+  "pod_age",
+  "Pod Age",
+  ["Namespace", "Pod_Name"],
+  registry = registry
+  )
+
+resource_event_warning = Gauge(
+  "k8s_resource_event",
+  "Resource Events Only Warning",
+  ["Namespace", "Resource", "Name", "Reason"],
+  registry = registry
+  )
+
 metrics_lock = Lock()
 
 #-----------#
@@ -56,16 +79,37 @@ def collect_metrics():
   pods = v1.list_pod_for_all_namespaces().items
   deployments = apps1.list_deployment_for_all_namespaces().items
   namespaces = v1.list_namespace().items
+  events = v1.list_event_for_all_namespaces().items
 
   pods_info.clear()
   deploy_info.clear()
   namespace_info.clear()
+  pods_restart.clear()
+  pods_age.clear()
+  resource_event_warning.clear()
 
   for pod in pods:
     Seob_Namespace = pod.metadata.namespace
     Seob_Pod_Name = pod.metadata.name
     Seob_State = pod.status.phase or "Unknown"
     Seob_containers = pod.spec.containers
+    Seob_Pod_Restart = pod.status.container_statuses
+    Seob_Pod_Created = pod.metadata.creation_timestamp
+
+    restart_total = sum(status.restart_count for status in (Soeb_Pod_Restart or []))
+    pods_restart.labels(
+      Namespace = Seob_Namespace,
+      Pod_Name = Seob_Pod_Name
+      ).set(status.restart_count)
+    
+    now = datetime.now(timezone.utc)
+    age_time = now - Seob_Pod_Created
+    age = age_time.total_seconds() / 3600
+    pods_age.labels(
+      Namespace = Seob_Namespace,
+      Pod_Name = Seob_Pod_Name
+      ).set(age)
+
     for container in Seob_containers:
       Image = container.image
 
@@ -100,6 +144,20 @@ def collect_metrics():
       NS_Name = Seob_NS_Name,
       State = Seob_State
       ).set(1)
+
+  for event in events:
+    if event.type == "Warning":
+      Seob_Namespace = event.involved_object.namespace
+      Seob_Resource = event.involved_object.kind
+      Seob_Name = event.involved_object.name
+      Seob_Reason = event.reason
+      
+      resource_event_warning.labels(
+        Namespace = Seob_Namespace,
+        Resource = Seob_Resource,
+        Name = Seob_Name,
+        Reason = Seob_Reason
+        ).set(event.count or 1)
 
 #-----------#
 # Label End #
