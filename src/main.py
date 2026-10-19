@@ -96,11 +96,11 @@ def collect_metrics():
     Seob_Pod_Restart = pod.status.container_statuses
     Seob_Pod_Created = pod.metadata.creation_timestamp
 
-    restart_total = sum(status.restart_count for status in (Soeb_Pod_Restart or []))
+    restart_total = sum(status.restart_count for status in (Seob_Pod_Restart or []))
     pods_restart.labels(
       Namespace = Seob_Namespace,
       Pod_Name = Seob_Pod_Name
-      ).set(status.restart_count)
+      ).set(restart_total)
     
     now = datetime.now(timezone.utc)
     age_time = now - Seob_Pod_Created
@@ -146,7 +146,7 @@ def collect_metrics():
       ).set(1)
 
   for event in events:
-    if event.type == "Warning":
+    if event.type == "Warning" or "Normal":
       Seob_Namespace = event.involved_object.namespace
       Seob_Resource = event.involved_object.kind
       Seob_Name = event.involved_object.name
