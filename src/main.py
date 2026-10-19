@@ -1,5 +1,5 @@
 # Made by Me with little help of GPT
-# Last Update 18th of Oct. 2026
+# Last Update 19th of Oct. 2026
 
 import time
 from kubernetes import client, config
@@ -10,8 +10,8 @@ from threading import Lock
 from datetime import datetime, timezone
 
 
-#config.load_incluster_config()
-config.load_kube_config()
+config.load_incluster_config()
+#config.load_kube_config()
 
 v1 = client.CoreV1Api()
 apps1 = client.AppsV1Api()
