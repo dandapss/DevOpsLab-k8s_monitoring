@@ -34,7 +34,7 @@ spec:
             - containerPort: {{ .Values.container.port}}
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: {{ .Values.container.port }}
             initialDelaySeconds: 5
             periodSeconds: 20
