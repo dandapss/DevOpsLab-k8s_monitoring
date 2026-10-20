@@ -1,5 +1,5 @@
 # Made by Me with little help of GPT
-# Last Update 18th of Oct. 2026
+# Last Update 19th of Oct. 2026
 
 import time
 from kubernetes import client, config
@@ -10,8 +10,8 @@ from threading import Lock
 from datetime import datetime, timezone
 
 
-#config.load_incluster_config()
-config.load_kube_config()
+config.load_incluster_config()
+#config.load_kube_config()
 
 v1 = client.CoreV1Api()
 apps1 = client.AppsV1Api()
@@ -96,11 +96,11 @@ def collect_metrics():
     Seob_Pod_Restart = pod.status.container_statuses
     Seob_Pod_Created = pod.metadata.creation_timestamp
 
-    restart_total = sum(status.restart_count for status in (Soeb_Pod_Restart or []))
+    restart_total = sum(status.restart_count for status in (Seob_Pod_Restart or []))
     pods_restart.labels(
       Namespace = Seob_Namespace,
       Pod_Name = Seob_Pod_Name
-      ).set(status.restart_count)
+      ).set(restart_total)
     
     now = datetime.now(timezone.utc)
     age_time = now - Seob_Pod_Created
@@ -129,7 +129,7 @@ def collect_metrics():
     if Seob_replica > 0:
       rate = Seob_readyReplica / Seob_replica * 100
     else:
-      rate = 999
+      rate = -1
 
     deploy_info.labels(
       Namespace = Seob_Namespace,
@@ -146,7 +146,7 @@ def collect_metrics():
       ).set(1)
 
   for event in events:
-    if event.type == "Warning":
+    if event.type == "Warning" or "Normal":
       Seob_Namespace = event.involved_object.namespace
       Seob_Resource = event.involved_object.kind
       Seob_Name = event.involved_object.name
@@ -177,6 +177,15 @@ class What_To_Get(BaseHTTPRequestHandler):
       self.respond(200, b"OK\n")
       return
 
+    if path == "/readyz":
+      try:
+        core_api.list_namespace(limit=1, _request_timeout=5)
+        self.respond(200, b"All Ready!\n")
+      except client.ApiException:
+        self._respond(503, b"Kubernetes API unavailable\n")
+      except Exception:
+        self._respond(503, b"Kubernetes APi unavailable\n")
+    
     if path == "/metrics":
       try:
         with metrics_lock:

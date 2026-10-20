@@ -129,7 +129,7 @@ def collect_metrics():
     if Seob_replica > 0:
       rate = Seob_readyReplica / Seob_replica * 100
     else:
-      rate = 999
+      rate = -1
 
     deploy_info.labels(
       Namespace = Seob_Namespace,
@@ -177,6 +177,15 @@ class What_To_Get(BaseHTTPRequestHandler):
       self.respond(200, b"OK\n")
       return
 
+    if path == "/readyz":
+      try:
+        core_api.list_namespace(limit=1, _request_timeout=5)
+        self.respond(200, b"All Ready!\n")
+      except client.ApiException:
+        self._respond(503, b"Kubernetes API unavailable\n")
+      except Exception:
+        self._respond(503, b"Kubernetes APi unavailable\n")
+    
     if path == "/metrics":
       try:
         with metrics_lock:
