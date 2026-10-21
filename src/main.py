@@ -182,9 +182,9 @@ class What_To_Get(BaseHTTPRequestHandler):
         core_api.list_namespace(limit=1, _request_timeout=5)
         self.respond(200, b"All Ready!\n")
       except client.ApiException:
-        self._respond(503, b"Kubernetes API unavailable\n")
+        self.respond(503, b"Kubernetes API unavailable\n")
       except Exception:
-        self._respond(503, b"Kubernetes APi unavailable\n")
+        self.respond(503, b"Kubernetes APi unavailable\n")
     
     if path == "/metrics":
       try:
