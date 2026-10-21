@@ -34,14 +34,14 @@ spec:
             - containerPort: {{ .Values.container.port}}
           livenessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: {{ .Values.container.port }}
             initialDelaySeconds: 5
             periodSeconds: 20
           readinessProbe:
             httpGet:
               # Updated to /readyz: src/main.py checks Kubernetes API access here.
-              path: /healthz
+              path: /readyz
               port: {{ .Values.container.port }}
             initialDelaySeconds: 5
             periodSeconds: 15

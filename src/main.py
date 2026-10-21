@@ -187,6 +187,8 @@ class What_To_Get(BaseHTTPRequestHandler):
       except Exception as e:
         print(f"Exception {e}", flush=True)
         self.respond(503, b"Kubernetes APi unavailable\n")
+
+      
     
     if path == "/metrics":
       try:
