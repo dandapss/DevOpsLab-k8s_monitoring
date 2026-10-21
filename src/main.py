@@ -179,11 +179,13 @@ class What_To_Get(BaseHTTPRequestHandler):
 
     if path == "/readyz":
       try:
-        core_api.list_namespace(limit=1, _request_timeout=5)
+        v1.list_namespace(limit=1, _request_timeout=5)
         self.respond(200, b"All Ready!\n")
-      except client.ApiException:
+      except client.ApiException as e:
+        print(f"ApiException: {e}", flush=True)
         self.respond(503, b"Kubernetes API unavailable\n")
-      except Exception:
+      except Exception as e:
+        print(f"Exception {e}", flush=True)
         self.respond(503, b"Kubernetes APi unavailable\n")
     
     if path == "/metrics":
