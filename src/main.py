@@ -10,8 +10,8 @@ from threading import Lock
 from datetime import datetime, timezone
 
 
-#config.load_incluster_config()
-config.load_kube_config()
+config.load_incluster_config()
+#config.load_kube_config()
 
 v1 = client.CoreV1Api()
 apps1 = client.AppsV1Api()

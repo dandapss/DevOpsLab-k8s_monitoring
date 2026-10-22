@@ -59,7 +59,7 @@ pods_age = Gauge(
 resource_event_warning = Gauge(
   "k8s_resource_event",
   "Resource Events Only Warning",
-  ["Namespace", "Resource", "Name", "Reason"],
+  ["Namespace", "Resource", "Name", "Reason", "Message"],
   registry = registry
   )
 
@@ -75,7 +75,7 @@ metrics_lock = Lock()
 #-------------#
 
 def collect_metrics():
-
+  print("HELL YEAHHHHH")
   pods = v1.list_pod_for_all_namespaces().items
   deployments = apps1.list_deployment_for_all_namespaces().items
   namespaces = v1.list_namespace().items
@@ -146,17 +146,19 @@ def collect_metrics():
       ).set(1)
 
   for event in events:
-    if event.type == "Warning" or "Normal":
+    if event.type == "Warning":
       Seob_Namespace = event.involved_object.namespace
       Seob_Resource = event.involved_object.kind
       Seob_Name = event.involved_object.name
       Seob_Reason = event.reason
-      
+      Seob_Message = event.message
+
       resource_event_warning.labels(
         Namespace = Seob_Namespace,
         Resource = Seob_Resource,
         Name = Seob_Name,
-        Reason = Seob_Reason
+        Reason = Seob_Reason,
+        Message = Seob_Message
         ).set(event.count or 1)
 
 #-----------#
@@ -179,12 +181,16 @@ class What_To_Get(BaseHTTPRequestHandler):
 
     if path == "/readyz":
       try:
-        core_api.list_namespace(limit=1, _request_timeout=5)
+        v1.list_namespace(limit=1, _request_timeout=5)
         self.respond(200, b"All Ready!\n")
-      except client.ApiException:
-        self._respond(503, b"Kubernetes API unavailable\n")
-      except Exception:
-        self._respond(503, b"Kubernetes APi unavailable\n")
+      except client.ApiException as e:
+        print(f"ApiException: {e}", flush=True)
+        self.respond(503, b"Kubernetes API unavailable\n")
+      except Exception as e:
+        print(f"Exception {e}", flush=True)
+        self.respond(503, b"Kubernetes APi unavailable\n")
+
+      
     
     if path == "/metrics":
       try:
