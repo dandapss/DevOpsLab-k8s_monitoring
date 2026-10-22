@@ -24,7 +24,7 @@ spec:
       - CreateNamespace=true
 
   ignoreDifferences:
-  - groups: apps
+  - group: apps
     kind: Deployment
-    jsonPointers:
-    - /spec/template/spec/containers[]/image
+    jqPathExpressions:
+    - .spec.template.spec.containers[].image

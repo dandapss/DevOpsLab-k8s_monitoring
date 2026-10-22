@@ -63,6 +63,25 @@ spec:
       containers:
         - name: redis
           image: redis:alpine
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-test2
+  namespace: test-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-test
+  template:
+    metadata:
+      labels:
+        app: redis-test
+    spec:
+      containers:
+      - name: no-image
+        image: no-image:0.0
 
 ---
 apiVersion: v1
