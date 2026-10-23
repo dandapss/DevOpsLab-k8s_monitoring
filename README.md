@@ -1,88 +1,111 @@
 # Kubernetes Resource Monitoring
 
-A personal DevOps lab for collecting Kubernetes resource metrics with a Python exporter, Prometheus, and Grafana. The project uses Docker Desktop Kubernetes and WSL2 with kind as local lab environments.
+## Introduction
+
+A small Kubernetes monitoring lab. A Python exporter reads live cluster resources through the Kubernetes API and exposes metrics for Prometheus. Grafana is used to explore the metrics and build dashboards and alerts.
+
+GitHub Actions validates the manifests and Helm chart. When exporter code or its build files change, it builds and scans a container image, publishes it to GHCR, and updates the Helm image tag. Argo CD deploys the chart to the local Kubernetes cluster.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Git[GitHub repository] --> CI[GitHub Actions]
-    CI -->|Build, scan, push on image source changes| GHCR[GitHub Container Registry]
-    CI -->|Update image tag in Helm values| Git
-    Git -->|Helm chart source| Argo[Argo CD]
+  classDef code fill:#E8EAF6,stroke:#3949AB,color:#1A237E,stroke-width:2px
+  classDef delivery fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px
+  classDef cluster fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px
+  classDef monitor fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:2px
+  classDef sample fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:2px
 
-    subgraph Cluster[Kubernetes lab]
-        API[Kubernetes API]
-        Chart[Exporter Helm release] --> Exporter[Python exporter]
-        Exporter -->|Read-only API requests| API
-        Exporter --> Svc[ClusterIP Service]
-        SM[ServiceMonitor] --> Prom[Prometheus]
-        Svc -->|/metrics| Prom
-        Prom -->|PromQL| Grafana[Grafana]
-        Sample[Sample workloads] --> API
-    end
+  subgraph source[Code and delivery]
+    direction LR
+    repo[GitHub repository]:::code --> ci[GitHub Actions<br/>YAML and Helm checks]:::delivery
+    ci -->|Exporter files changed| image[Build and Trivy scan]:::delivery
+    image --> ghcr[GHCR image]:::delivery
+    image --> tag[Update Helm image tag]:::delivery
+    tag -->|Commit change| repo
+  end
 
-    Argo -->|Automated sync, self-heal, prune| Chart
-    GHCR -->|Pull image| Exporter
+  subgraph lab[Docker Desktop Kubernetes]
+    direction LR
+    argocd[Argo CD<br/>Helm Application]:::delivery --> deploy[Exporter Deployment]:::cluster
+    workloads[Sample workloads<br/>temp_app.yaml]:::sample --> api[Kubernetes API]:::cluster
+    deploy --> exporter[Python exporter<br/>read-only resource access]:::cluster
+    exporter -->|List pods, deployments,<br/>namespaces and Warning events| api
+    exporter --> endpoint[ClusterIP Service<br/>/metrics]:::cluster
+    endpoint --> sm[ServiceMonitor<br/>15-second scrape]:::monitor
+    sm --> prometheus[Prometheus<br/>10-day retention · 500Mi PVC]:::monitor
+    prometheus --> grafana[Grafana<br/>dashboard and alert work in progress]:::monitor
+  end
+
+  repo -->|Watches Helm chart| argocd
+  ghcr -->|Pull image| deploy
 ```
 
-The exporter reads live cluster state through the Kubernetes API. It does not parse `temp_app.yaml`; that file provides sample workloads to apply to the cluster. Prometheus discovers the exporter through a `ServiceMonitor`. The Grafana dashboard JSON files are kept in the repository for import and reference.
+`temp_app.yaml` creates sample resources in the cluster. The exporter reads the live Kubernetes API; it does not read that YAML file directly. Argo CD is configured to ignore Deployment image differences.
 
-## Current metrics
+## Dashboard
 
-- `k8s_pods`: pod/container image and phase information
-- `pods_restart_count`: total container restarts per pod
-- `pod_age`: pod age in hours
-- `k8s_deploy`: deployment ready-replica percentage (`-1` when desired replicas are zero)
-- `k8s_namespace`: namespace state
-- `k8s_resource_event`: Warning event counts and details
+<details>
+<summary>Dashboard 1 — add title</summary>
 
-The exporter currently queries pods, deployments, namespaces, and Kubernetes events. Its ClusterRole also includes read access to nodes, services, and ConfigMaps for possible future metrics.
+<!-- Add a screenshot here when ready, for example: ![Dashboard](docs/images/dashboard-01.png) -->
 
-## Repository layout
+- **Purpose:** Add a short description.
+- **Panels and queries:** Add notes here.
+- **Alerts:** Add rule and notification notes here.
 
-```text
-src/main.py                         Python Prometheus exporter
-kubernetes/helm-monitor/            Exporter Helm chart and sample workloads
-kubernetes/prometheus/values.yaml   Prometheus stack values
-kubernetes/grafana/                 Grafana values and dashboard JSON files
-kubernetes/argocd/                  Argo CD Application manifest
-.github/workflows/CI.yaml           Validation, image build, scan, and publish workflow
-```
+</details>
 
-## CI/CD
+<details>
+<summary>Dashboard 2 — add title</summary>
 
-GitHub Actions runs for relevant pushes to `main` and can also be started manually. YAML linting and Helm chart validation run for workflow executions. The Docker image is built and scanned with Trivy only when `Dockerfile`, `src/main.py`, or `requirements.txt` changes. On `main`, a successful scan is followed by a push to GHCR and an update to the image tag in the Helm values file.
+<!-- Add a screenshot here when ready, for example: ![Dashboard](docs/images/dashboard-02.png) -->
 
-Argo CD tracks `kubernetes/helm-monitor` from the `main` branch and is configured for automated sync, self-healing, and pruning.
+- **Purpose:** Add a short description.
+- **Panels and queries:** Add notes here.
+- **Alerts:** Add rule and notification notes here.
 
-## Run in a local cluster
+</details>
 
-Prerequisites: `kubectl`, Helm, a Kubernetes cluster, and a Prometheus installation with the Prometheus Operator.
+## Troubleshooting
 
-Apply the sample workloads and install the exporter chart:
+<details>
+<summary>Issue — add a short title</summary>
 
-```powershell
-kubectl apply -f kubernetes/helm-monitor/temp_app.yaml
-helm upgrade --install helm-monitor ./kubernetes/helm-monitor `
-  --namespace helm-monitor --create-namespace
-```
+- **Symptom:** What happened?
+- **Cause:** What caused it?
+- **Fix:** What resolved it?
 
-The chart defaults to the image and tag in `kubernetes/helm-monitor/values.yaml`. To use a locally built image instead:
+</details>
 
-```powershell
-docker build -t helm-monitor:dev .
-helm upgrade --install helm-monitor ./kubernetes/helm-monitor `
-  --namespace helm-monitor --create-namespace `
-  --set image.repository=helm-monitor --set image.tag=dev
-```
+## What I learned
 
-For kind, load the local image into the cluster before installing the chart:
+<details>
+<summary>Kubernetes and Helm</summary>
 
-```powershell
-kind load docker-image helm-monitor:dev --name <cluster-name>
-```
+- Deploy workloads and inspect their state across namespaces.
+- Package the exporter with Helm templates and values.
+- Give the exporter read access through Kubernetes RBAC.
+- Use `/healthz` for liveness and `/readyz` to check Kubernetes API access.
 
-The Prometheus and Grafana components are installed separately from the exporter chart. Import a dashboard JSON file from `kubernetes/grafana/` into Grafana to explore the collected metrics.
+</details>
 
+<details>
+<summary>Metrics and monitoring</summary>
 
+- Expose application metrics from Python at `/metrics`.
+- Connect a Service, ServiceMonitor, and Prometheus scrape configuration.
+- Use PromQL to handle duplicate series with `max without`.
+- Check series count, retention, and storage when reviewing metric labels.
+
+</details>
+
+<details>
+<summary>CI/CD and GitOps</summary>
+
+- Use GitHub Actions path filters so Kubernetes-only changes do not build an image.
+- Validate YAML and Helm charts in CI.
+- Build, scan, and publish exporter images to GHCR when exporter build files change.
+- Use Argo CD to track the Helm chart and reconcile the cluster with Git.
+
+</details>
