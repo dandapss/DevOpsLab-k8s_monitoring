@@ -2,72 +2,77 @@
 
 ## Introduction
 
-A personal Kubernetes monitoring project that collects cluster resource and Warning-event metrics. A Python exporter makes the metrics available to Prometheus. Helm and Argo CD handle deployment, while GitHub Actions validates changes and delivers exporter images.
+A personal Kubernetes monitoring project that collects cluster resource and Warning-event metrics. A Python exporter makes the metrics available to Prometheus. The project is developed in two local labs and uses GitHub Actions, GHCR, Helm, and Argo CD for delivery.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  classDef source fill:#eef1f5,stroke:#667085,color:#202939
-  classDef delivery fill:#f1eafa,stroke:#7856a6,color:#33224a
-  classDef runtime fill:#eaf2f8,stroke:#477a9e,color:#18364a
-  classDef monitoring fill:#edf4ed,stroke:#5b805e,color:#29432b
-  classDef sample fill:#faf1e5,stroke:#a87937,color:#4d391e
-
-  subgraph code[Source and delivery]
-    direction TB
-    repo[GitHub repository]:::source
-    actions[GitHub Actions<br/>YAML and Helm checks]:::delivery
-    image[GHCR image<br/>built for exporter changes]:::delivery
-    repo --> actions
-    actions -->|Exporter source changed| image
-    actions -.->|Update image tag| repo
-  end
-
-  subgraph lab[Kubernetes cluster]
-    direction TB
-    argocd[Argo CD<br/>Helm chart from Git]:::delivery
-    exporter[Python exporter]:::runtime
-    workloads[Sample workloads]:::sample
-    api[Kubernetes API]:::runtime
-    prometheus[Prometheus]:::monitoring
-    grafana[Grafana]:::monitoring
-    argocd --> exporter
-    image -->|Pull image| exporter
-    workloads --> api
-    exporter -->|Read cluster resources| api
-    exporter -->|/metrics| prometheus
-    prometheus --> grafana
-  end
-
-  repo -->|Tracks deployment config| argocd
-```
+<table>
+  <tr><th colspan="2">LOCAL DEVELOPMENT</th></tr>
+  <tr>
+    <td bgcolor="#eef4fa"><b>Home</b><br>Docker Desktop<br>Docker Desktop Kubernetes</td>
+    <td bgcolor="#f4eff8"><b>Company</b><br>Docker Desktop · WSL2 · kind<br><br><b>GitHub TLS certificate validation fails here.</b><br>TLS verification is temporarily disabled in this lab.</td>
+  </tr>
+  <tr><td colspan="2" align="center">↓ <b>Git</b> · edit → commit → push</td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#eef1f5"><b>GitHub</b></td></tr>
+  <tr><td colspan="2" align="center">↓</td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#f2eefa"><b>GitHub Actions</b></td></tr>
+  <tr><td colspan="2" align="center">↓ image build and scan · image tag update ↗ GitHub</td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#f2eefa"><b>GHCR</b></td></tr>
+  <tr><th colspan="2">DEPLOYMENT TARGETS</th></tr>
+  <tr>
+    <td bgcolor="#eef4fa"><b>Home cluster</b><br>Argo CD · Helm<br>Docker Desktop Kubernetes</td>
+    <td bgcolor="#f4eff8"><b>Company cluster</b><br>Argo CD · Helm<br>kind on WSL2</td>
+  </tr>
+  <tr><td colspan="2" align="center">GitHub → Argo CD · GHCR → image pull</td></tr>
+  <tr><th colspan="2">MONITORING FLOW · SAME IN EACH LAB</th></tr>
+  <tr><td colspan="2" align="center" bgcolor="#faf1e5">Sample workloads → Kubernetes API</td></tr>
+  <tr><td colspan="2" align="center">Python exporter ↔ Kubernetes API <small>(read-only)</small></td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#eaf2f8">Python exporter · /metrics</td></tr>
+  <tr><td colspan="2" align="center">↓</td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#eaf2f8">ServiceMonitor</td></tr>
+  <tr><td colspan="2" align="center">↓</td></tr>
+  <tr><td colspan="2" align="center" bgcolor="#edf4ed">Prometheus → Grafana</td></tr>
+</table>
 
 ## Troubleshooting
 
 <details>
-<summary>Health and readiness checks</summary>
+<summary>Issues resolved in the lab</summary>
 
-The exporter uses `/healthz` for liveness and `/readyz` to check Kubernetes API access before receiving traffic.
+- **Exporter returned 403:** replaced the default ServiceAccount with a dedicated ServiceAccount and read-only RBAC permissions.
+- **ServiceMonitor showed 0/0 targets:** aligned the Service label with the ServiceMonitor selector.
+- **node-exporter restarted in Docker Desktop:** disabled the host root filesystem mount for this local environment.
+- **Exporter HTTP server failed to start:** corrected the server initialization and rebuilt the image.
+
+See [Troubleshoot.md](Troubleshoot.md) for the longer notes.
 
 </details>
 
 ## What I learned
 
 <details>
-<summary>Kubernetes and deployment</summary>
+<summary>Local labs and containers</summary>
 
-- Deploy workloads with Kubernetes and package the exporter with Helm.
-- Configure API access with RBAC and health checks with probes.
-- Use Argo CD to reconcile a Helm deployment from Git.
+- Set up a home lab with Docker Desktop Kubernetes and a company lab with WSL2 and kind.
+- Build a container image for the exporter and publish it to GHCR.
 
 </details>
 
 <details>
-<summary>CI/CD and monitoring</summary>
+<summary>Git, CI, and GitOps</summary>
 
-- Use GitHub Actions path filters to avoid image builds for Kubernetes-only changes.
-- Build, scan, and publish container images to GHCR.
-- Expose metrics to Prometheus with a ServiceMonitor and explore them with PromQL.
+- Use Git to track and push project changes from both environments.
+- Configure GitHub Actions path filters so Kubernetes-only changes do not build an image.
+- Validate YAML and Helm, scan source-built images with Trivy, and update the Helm image tag.
+- Connect a Helm chart to Argo CD for deployment from Git.
+
+</details>
+
+<details>
+<summary>Prometheus and Grafana</summary>
+
+- Expose Kubernetes resource metrics from a Python exporter and discover it through a ServiceMonitor.
+- Use PromQL, including `max without`, to handle duplicate series.
+- Build Grafana panels from PromQL for workload status, restarts, and Warning events.
 
 </details>
