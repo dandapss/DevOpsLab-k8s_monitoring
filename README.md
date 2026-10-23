@@ -2,77 +2,93 @@
 
 ## Introduction
 
-A personal Kubernetes monitoring project that collects cluster resource and Warning-event metrics. A Python exporter makes the metrics available to Prometheus. The project is developed in two local labs and uses GitHub Actions, GHCR, Helm, and Argo CD for delivery.
+A personal project for collecting Kubernetes resource and Warning-event metrics. A Python exporter reads cluster information and exposes it to Prometheus. The project uses GitHub Actions, GHCR, Helm, and Argo CD to deliver the application to two local Kubernetes labs.
 
 ## Architecture
 
-<table>
-  <tr><th colspan="2">LOCAL DEVELOPMENT</th></tr>
-  <tr>
-    <td bgcolor="#eef4fa"><b>Home</b><br>Docker Desktop<br>Docker Desktop Kubernetes</td>
-    <td bgcolor="#f4eff8"><b>Company</b><br>Docker Desktop · WSL2 · kind<br><br><b>GitHub TLS certificate validation fails here.</b><br>TLS verification is temporarily disabled in this lab.</td>
-  </tr>
-  <tr><td colspan="2" align="center">↓ <b>Git</b> · edit → commit → push</td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#eef1f5"><b>GitHub</b></td></tr>
-  <tr><td colspan="2" align="center">↓</td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#f2eefa"><b>GitHub Actions</b></td></tr>
-  <tr><td colspan="2" align="center">↓ image build and scan · image tag update ↗ GitHub</td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#f2eefa"><b>GHCR</b></td></tr>
-  <tr><th colspan="2">DEPLOYMENT TARGETS</th></tr>
-  <tr>
-    <td bgcolor="#eef4fa"><b>Home cluster</b><br>Argo CD · Helm<br>Docker Desktop Kubernetes</td>
-    <td bgcolor="#f4eff8"><b>Company cluster</b><br>Argo CD · Helm<br>kind on WSL2</td>
-  </tr>
-  <tr><td colspan="2" align="center">GitHub → Argo CD · GHCR → image pull</td></tr>
-  <tr><th colspan="2">MONITORING FLOW · SAME IN EACH LAB</th></tr>
-  <tr><td colspan="2" align="center" bgcolor="#faf1e5">Sample workloads → Kubernetes API</td></tr>
-  <tr><td colspan="2" align="center">Python exporter ↔ Kubernetes API <small>(read-only)</small></td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#eaf2f8">Python exporter · /metrics</td></tr>
-  <tr><td colspan="2" align="center">↓</td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#eaf2f8">ServiceMonitor</td></tr>
-  <tr><td colspan="2" align="center">↓</td></tr>
-  <tr><td colspan="2" align="center" bgcolor="#edf4ed">Prometheus → Grafana</td></tr>
-</table>
+```mermaid
+flowchart TB
+  subgraph L[Local labs]
+    H[Home<br/>Docker Desktop + Docker Desktop Kubernetes]
+    W[Company<br/>Docker Desktop + WSL2 + kind<br/>GitHub TLS validation is temporarily disabled]
+  end
 
+  H -->|edit · commit · push| G[GitHub<br/>source · Helm chart · manifests]
+  W -->|edit · commit · push| G
+
+  G --> A[GitHub Actions<br/>validate changes · build and scan image when needed]
+  A -->|push exporter image| R[GHCR]
+  A -.->|commit updated image tag| G
+
+  G -->|Argo CD reads Git| C1
+  G -->|Argo CD reads Git| C2
+  R -->|image pull| C1
+  R -->|image pull| C2
+
+  subgraph C1[Home cluster · Argo CD + Helm]
+    API1[Kubernetes API] -. read-only RBAC .-> E1[Python exporter<br/>/metrics]
+    S1[ServiceMonitor] -. discovers endpoint .-> P1[Prometheus]
+    P1 -->|scrapes /metrics| E1
+    F1[Grafana] -->|queries| P1
+  end
+
+  subgraph C2[Company cluster · kind on WSL2 · Argo CD + Helm]
+    API2[Kubernetes API] -. read-only RBAC .-> E2[Python exporter<br/>/metrics]
+    S2[ServiceMonitor] -. discovers endpoint .-> P2[Prometheus]
+    P2 -->|scrapes /metrics| E2
+    F2[Grafana] -->|queries| P2
+  end
+
+  classDef lab fill:#eaf2fb,stroke:#8eacca,color:#202b3c
+  classDef source fill:#e9edf2,stroke:#aab5c2,color:#202b3c
+  classDef ci fill:#eee9f7,stroke:#b6a2d1,color:#202b3c
+  classDef registry fill:#e8f3ed,stroke:#96bba1,color:#202b3c
+  classDef monitor fill:#fff4e6,stroke:#d8b77e,color:#202b3c
+  class H,W lab
+  class G source
+  class A ci
+  class R registry
+  class E1,API1,S1,P1,F1,E2,API2,S2,P2,F2 monitor
+```
 ## Troubleshooting
 
 <details>
-<summary>Issues resolved in the lab</summary>
+<summary>Issues resolved during the project</summary>
 
-- **Exporter returned 403:** replaced the default ServiceAccount with a dedicated ServiceAccount and read-only RBAC permissions.
-- **ServiceMonitor showed 0/0 targets:** aligned the Service label with the ServiceMonitor selector.
-- **node-exporter restarted in Docker Desktop:** disabled the host root filesystem mount for this local environment.
+- **Exporter returned 403:** added a dedicated ServiceAccount and read-only RBAC permissions.
+- **Prometheus showed no exporter targets:** aligned the Service label with the ServiceMonitor selector.
+- **node-exporter restarted in Docker Desktop:** disabled its host root filesystem mount for the local lab.
 - **Exporter HTTP server failed to start:** corrected the server initialization and rebuilt the image.
+- **Prometheus image inspection failed:** switched from the distroless image variant to the standard image.
 
-See [Troubleshoot.md](Troubleshoot.md) for the longer notes.
+More context is in [Troubleshoot.md](Troubleshoot.md).
 
 </details>
 
 ## What I learned
 
 <details>
-<summary>Local labs and containers</summary>
+<summary>Local containers and Kubernetes labs</summary>
 
-- Set up a home lab with Docker Desktop Kubernetes and a company lab with WSL2 and kind.
-- Build a container image for the exporter and publish it to GHCR.
+- Set up separate home and company labs with Docker Desktop Kubernetes and kind on WSL2.
+- Built and published a Python exporter image to GHCR.
 
 </details>
 
 <details>
-<summary>Git, CI, and GitOps</summary>
+<summary>GitHub Actions and GitOps</summary>
 
-- Use Git to track and push project changes from both environments.
-- Configure GitHub Actions path filters so Kubernetes-only changes do not build an image.
-- Validate YAML and Helm, scan source-built images with Trivy, and update the Helm image tag.
-- Connect a Helm chart to Argo CD for deployment from Git.
+- Used GitHub Actions to validate changes and build the image only for relevant source changes.
+- Added image scanning and Helm image tag updates to the delivery flow.
+- Connected the Helm deployment to Argo CD so cluster state is managed from Git.
 
 </details>
 
 <details>
 <summary>Prometheus and Grafana</summary>
 
-- Expose Kubernetes resource metrics from a Python exporter and discover it through a ServiceMonitor.
-- Use PromQL, including `max without`, to handle duplicate series.
-- Build Grafana panels from PromQL for workload status, restarts, and Warning events.
+- Exposed exporter metrics and configured Prometheus discovery through a ServiceMonitor.
+- Practiced PromQL queries, including handling duplicate series with `max without`.
+- Explored Grafana panels using the metrics collected by the project.
 
 </details>
