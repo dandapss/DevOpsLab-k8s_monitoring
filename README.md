@@ -2,51 +2,46 @@
 
 ## Introduction
 
-A personal Kubernetes monitoring project that collects cluster resource and Warning event metrics. A Python exporter exposes the data to Prometheus, with Grafana used for dashboards and alerting. The project uses Helm and Argo CD for deployment, and GitHub Actions for validation and image delivery.
-
-Dashboard panels and alert rules are still being developed.
+A personal Kubernetes monitoring project that collects cluster resource and Warning-event metrics. A Python exporter makes the metrics available to Prometheus. Helm and Argo CD handle deployment, while GitHub Actions validates changes and delivers exporter images.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-  classDef source fill:#E8EAF6,stroke:#3949AB,color:#1A237E,stroke-width:2px
-  classDef delivery fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px
-  classDef cluster fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px
-  classDef monitoring fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:2px
+flowchart TB
+  classDef source fill:#eef1f5,stroke:#667085,color:#202939
+  classDef delivery fill:#f1eafa,stroke:#7856a6,color:#33224a
+  classDef runtime fill:#eaf2f8,stroke:#477a9e,color:#18364a
+  classDef monitoring fill:#edf4ed,stroke:#5b805e,color:#29432b
+  classDef sample fill:#faf1e5,stroke:#a87937,color:#4d391e
 
-  subgraph delivery[Code and delivery]
+  subgraph code[Source and delivery]
+    direction TB
     repo[GitHub repository]:::source
-    actions[GitHub Actions<br/>YAML and Helm validation]:::delivery
-    ghcr[GHCR<br/>Exporter image]:::delivery
-    argocd[Argo CD<br/>Helm deployment]:::delivery
+    actions[GitHub Actions<br/>YAML and Helm checks]:::delivery
+    image[GHCR image<br/>built for exporter changes]:::delivery
     repo --> actions
-    actions -->|Exporter changes: build, scan and publish| ghcr
-    actions -->|Update image tag| repo
-    repo -->|Track chart from Git| argocd
+    actions -->|Exporter source changed| image
+    actions -.->|Update image tag| repo
   end
 
-  subgraph cluster[Local Kubernetes cluster]
-    workload[Python exporter]:::cluster
-    api[Kubernetes API]:::cluster
-    service[Service<br/>/metrics]:::cluster
+  subgraph lab[Kubernetes cluster]
+    direction TB
+    argocd[Argo CD<br/>Helm chart from Git]:::delivery
+    exporter[Python exporter]:::runtime
+    workloads[Sample workloads]:::sample
+    api[Kubernetes API]:::runtime
     prometheus[Prometheus]:::monitoring
-    grafana[Grafana<br/>Dashboards and alerts]:::monitoring
-    argocd --> workload
-    ghcr -->|Pull image| workload
-    workload -->|Read cluster resources| api
-    workload --> service --> prometheus --> grafana
+    grafana[Grafana]:::monitoring
+    argocd --> exporter
+    image -->|Pull image| exporter
+    workloads --> api
+    exporter -->|Read cluster resources| api
+    exporter -->|/metrics| prometheus
+    prometheus --> grafana
   end
+
+  repo -->|Tracks deployment config| argocd
 ```
-
-## Dashboard
-
-<details>
-<summary>Dashboard and alerting</summary>
-
-This section is reserved for final dashboard screenshots and a short explanation of the panels and alert rules.
-
-</details>
 
 ## Troubleshooting
 
