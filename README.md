@@ -2,110 +2,77 @@
 
 ## Introduction
 
-A small Kubernetes monitoring lab. A Python exporter reads live cluster resources through the Kubernetes API and exposes metrics for Prometheus. Grafana is used to explore the metrics and build dashboards and alerts.
+A personal Kubernetes monitoring project that collects cluster resource and Warning event metrics. A Python exporter exposes the data to Prometheus, with Grafana used for dashboards and alerting. The project uses Helm and Argo CD for deployment, and GitHub Actions for validation and image delivery.
 
-GitHub Actions validates the manifests and Helm chart. When exporter code or its build files change, it builds and scans a container image, publishes it to GHCR, and updates the Helm image tag. Argo CD deploys the chart to the local Kubernetes cluster.
+Dashboard panels and alert rules are still being developed.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  classDef code fill:#E8EAF6,stroke:#3949AB,color:#1A237E,stroke-width:2px
+  classDef source fill:#E8EAF6,stroke:#3949AB,color:#1A237E,stroke-width:2px
   classDef delivery fill:#F3E5F5,stroke:#8E24AA,color:#4A148C,stroke-width:2px
   classDef cluster fill:#E3F2FD,stroke:#1E88E5,color:#0D47A1,stroke-width:2px
-  classDef monitor fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:2px
-  classDef sample fill:#FFF3E0,stroke:#FB8C00,color:#E65100,stroke-width:2px
+  classDef monitoring fill:#E8F5E9,stroke:#43A047,color:#1B5E20,stroke-width:2px
 
-  subgraph source[Code and delivery]
-    direction LR
-    repo[GitHub repository]:::code --> ci[GitHub Actions<br/>YAML and Helm checks]:::delivery
-    ci -->|Exporter files changed| image[Build and Trivy scan]:::delivery
-    image --> ghcr[GHCR image]:::delivery
-    image --> tag[Update Helm image tag]:::delivery
-    tag -->|Commit change| repo
+  subgraph delivery[Code and delivery]
+    repo[GitHub repository]:::source
+    actions[GitHub Actions<br/>YAML and Helm validation]:::delivery
+    ghcr[GHCR<br/>Exporter image]:::delivery
+    argocd[Argo CD<br/>Helm deployment]:::delivery
+    repo --> actions
+    actions -->|Exporter changes: build, scan and publish| ghcr
+    actions -->|Update image tag| repo
+    repo -->|Track chart from Git| argocd
   end
 
-  subgraph lab[Docker Desktop Kubernetes]
-    direction LR
-    argocd[Argo CD<br/>Helm Application]:::delivery --> deploy[Exporter Deployment]:::cluster
-    workloads[Sample workloads<br/>temp_app.yaml]:::sample --> api[Kubernetes API]:::cluster
-    deploy --> exporter[Python exporter<br/>read-only resource access]:::cluster
-    exporter -->|List pods, deployments,<br/>namespaces and Warning events| api
-    exporter --> endpoint[ClusterIP Service<br/>/metrics]:::cluster
-    endpoint --> sm[ServiceMonitor<br/>15-second scrape]:::monitor
-    sm --> prometheus[Prometheus<br/>10-day retention · 500Mi PVC]:::monitor
-    prometheus --> grafana[Grafana<br/>dashboard and alert work in progress]:::monitor
+  subgraph cluster[Local Kubernetes cluster]
+    workload[Python exporter]:::cluster
+    api[Kubernetes API]:::cluster
+    service[Service<br/>/metrics]:::cluster
+    prometheus[Prometheus]:::monitoring
+    grafana[Grafana<br/>Dashboards and alerts]:::monitoring
+    argocd --> workload
+    ghcr -->|Pull image| workload
+    workload -->|Read cluster resources| api
+    workload --> service --> prometheus --> grafana
   end
-
-  repo -->|Watches Helm chart| argocd
-  ghcr -->|Pull image| deploy
 ```
-
-`temp_app.yaml` creates sample resources in the cluster. The exporter reads the live Kubernetes API; it does not read that YAML file directly. Argo CD is configured to ignore Deployment image differences.
 
 ## Dashboard
 
 <details>
-<summary>Dashboard 1 — add title</summary>
+<summary>Dashboard and alerting</summary>
 
-<!-- Add a screenshot here when ready, for example: ![Dashboard](docs/images/dashboard-01.png) -->
-
-- **Purpose:** Add a short description.
-- **Panels and queries:** Add notes here.
-- **Alerts:** Add rule and notification notes here.
-
-</details>
-
-<details>
-<summary>Dashboard 2 — add title</summary>
-
-<!-- Add a screenshot here when ready, for example: ![Dashboard](docs/images/dashboard-02.png) -->
-
-- **Purpose:** Add a short description.
-- **Panels and queries:** Add notes here.
-- **Alerts:** Add rule and notification notes here.
+This section is reserved for final dashboard screenshots and a short explanation of the panels and alert rules.
 
 </details>
 
 ## Troubleshooting
 
 <details>
-<summary>Issue — add a short title</summary>
+<summary>Health and readiness checks</summary>
 
-- **Symptom:** What happened?
-- **Cause:** What caused it?
-- **Fix:** What resolved it?
+The exporter uses `/healthz` for liveness and `/readyz` to check Kubernetes API access before receiving traffic.
 
 </details>
 
 ## What I learned
 
 <details>
-<summary>Kubernetes and Helm</summary>
+<summary>Kubernetes and deployment</summary>
 
-- Deploy workloads and inspect their state across namespaces.
-- Package the exporter with Helm templates and values.
-- Give the exporter read access through Kubernetes RBAC.
-- Use `/healthz` for liveness and `/readyz` to check Kubernetes API access.
-
-</details>
-
-<details>
-<summary>Metrics and monitoring</summary>
-
-- Expose application metrics from Python at `/metrics`.
-- Connect a Service, ServiceMonitor, and Prometheus scrape configuration.
-- Use PromQL to handle duplicate series with `max without`.
-- Check series count, retention, and storage when reviewing metric labels.
+- Deploy workloads with Kubernetes and package the exporter with Helm.
+- Configure API access with RBAC and health checks with probes.
+- Use Argo CD to reconcile a Helm deployment from Git.
 
 </details>
 
 <details>
-<summary>CI/CD and GitOps</summary>
+<summary>CI/CD and monitoring</summary>
 
-- Use GitHub Actions path filters so Kubernetes-only changes do not build an image.
-- Validate YAML and Helm charts in CI.
-- Build, scan, and publish exporter images to GHCR when exporter build files change.
-- Use Argo CD to track the Helm chart and reconcile the cluster with Git.
+- Use GitHub Actions path filters to avoid image builds for Kubernetes-only changes.
+- Build, scan, and publish container images to GHCR.
+- Expose metrics to Prometheus with a ServiceMonitor and explore them with PromQL.
 
 </details>
