@@ -139,11 +139,13 @@ def collect_metrics():
   for namespace in namespaces:
     Seob_NS_Name = namespace.metadata.name
     Seob_State= namespace.status.phase or "Unknown"
+    deployments = apps1.list_namespaced_deployment(Seob_NS_Name)
+    deployment_count = len(deployments.items)
 
     namespace_info.labels(
       NS_Name = Seob_NS_Name,
       State = Seob_State
-      ).set(1)
+      ).set(deployment_count)
 
   for event in events:
     if event.type == "Warning":
