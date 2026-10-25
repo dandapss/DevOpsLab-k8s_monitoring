@@ -1,3 +1,9 @@
+1. Adding to read Helm information in metric
+- I could not think about using "helm" command in python
+- I need to think about giving permission to read "secret", so I need to consider more on cases before apply it.
+>> It will be added in my next project. 
+
+
 1. Python HTTP Server Error
 
 The first Docker version had an HTTPServer constructor issue.
