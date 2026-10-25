@@ -1,7 +1,9 @@
 # Made by Me with little help of GPT
-# Last Update 19th of Oct. 2026
+# Last Update 25th of Oct. 2026
 
 import time
+import json
+import subprocess
 from kubernetes import client, config
 from prometheus_client import Gauge, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -63,6 +65,20 @@ resource_event_warning = Gauge(
   registry = registry
   )
 
+helm_release_info = Gauge(
+  "helm_release_info",
+  "Helm Release Information",
+  ["Namespace", "Release_Name", "Chart_Version", "App_Version", "Status"],
+  registry = registry
+)
+
+helm_release_date = Gauge(
+  "helm_release_date",
+  "Helm Release Date",
+  ["Namespace", "Release_Name"],
+  registry = registry
+)
+
 metrics_lock = Lock()
 
 #-----------#
@@ -75,7 +91,7 @@ metrics_lock = Lock()
 #-------------#
 
 def collect_metrics():
-  print("HELL YEAHHHHH")
+  print("Logging Check!!!")
   pods = v1.list_pod_for_all_namespaces().items
   deployments = apps1.list_deployment_for_all_namespaces().items
   namespaces = v1.list_namespace().items
@@ -161,6 +177,58 @@ def collect_metrics():
         Message = Seob_Message
         ).set(event.count or 1)
 
+  try:
+    result = subprocess.run(
+      ["helm", "list", "-A", "-o", "json"],
+      capture_output=True,
+      text=True,
+      check=True,
+      timeout=15
+    )
+    releases = json.loads(result.stdout)
+
+    helm_release_info.clear()
+    helm_release_date.clear()
+    for release in releases:
+      Seob_Namespace = release.get("namespace", "")
+      Seob_Name = release.get("name", "")
+      Seob_revision = int(release.get("revision", 0))
+      Seob_chart_v = release.get("chart", "")
+      Seob_app_v = release.get("app_version", "")
+      Seob_status = release.get("status", "")
+
+      Seob_updated = release.get("updated", "")
+      updated_timestamp = 0
+
+      if Seob_updated:
+        try:
+          updated_clean = Seob_updated.rsplit(" ", 1)[0]
+          updated_datetime = datetime.fromisoformat(
+            updated_clean.replace(" ", "T", 1)
+          )
+          updated_timestamp = updated_datetime.timestamp()
+
+          helm_release_date.labels(
+            Namespace = Seob_Namespace,
+            Release_Name = Seob_Name
+          ).set(updated_timestamp)
+
+        except (ValueError, TypeError) as e:
+          print(f"Error from {Seob_Namespace} / {Seob_Name}")
+          print(f"Could not get Helm updated time: {e}", flush=True)
+
+      helm_release_info.labels(
+        Namespace = Seob_Namespace,
+        Release_Name = Seob_Name,
+        Chart_Version = Seob_chart_v,
+        App_Version = Seob_app_v,
+        Status = Seob_status
+      ).set(Seob_revision)
+
+  except Exception as e:
+    print(f"Helm metric collection failed: {e}", flush=True)
+
+
 #-----------#
 # Label End #
 #-----------#
@@ -227,8 +295,6 @@ class What_To_Get(BaseHTTPRequestHandler):
 if __name__ == "__main__":
   server = ThreadingHTTPServer(("0.0.0.0", 8080), What_To_Get)
   print("Kubernetes exporter running on port 8080", flush=True)
-
-  collect_metrics()
   server.serve_forever()
 
 #---------#
