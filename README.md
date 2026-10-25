@@ -58,13 +58,13 @@ flowchart TB
 
 [Dashboard JSON](kubernetes/grafana/dashboard.json)
 
-![Grafana dashboard panel 1](kubernetes/grafana/Dashboard_Panel_00.png)
+<img width="1617" height="479" alt="Dashboard_Panel_00" src="https://github.com/user-attachments/assets/c85779b7-8935-471d-80c3-e2bd6d75a570" />
 
-![Grafana dashboard panel 2](kubernetes/grafana/Dashboard_Panel_01.png)
+<img width="1636" height="908" alt="Dashboard_Panel_01" src="https://github.com/user-attachments/assets/3ded5afa-32aa-428f-8cf6-3df30729c83e" />
 
-![Grafana dashboard panel 3](kubernetes/grafana/Dashboard_Panel_02.png)
+<img width="1625" height="552" alt="Dashboard_Panel_02" src="https://github.com/user-attachments/assets/349b3a48-98bb-4a95-8134-777c20fcdbf6" />
 
-![Grafana dashboard panel 4](kubernetes/grafana/Dashboard_Panel_03.png)
+<img width="1625" height="584" alt="Dashboard_Panel_03" src="https://github.com/user-attachments/assets/e7a9eecb-17e4-4538-8599-fd4aaf34254d" />
 
 </details>
 
