@@ -186,6 +186,7 @@ def collect_metrics():
       timeout=15
     )
     releases = json.loads(result.stdout)
+    print(f"Helm releases found: {len(releases)}", flush=True)
 
     helm_release_info.clear()
     helm_release_date.clear()
