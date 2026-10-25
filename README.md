@@ -50,6 +50,24 @@ flowchart TB
   class R registry
   class E1,API1,S1,P1,F1,E2,API2,S2,P2,F2 monitor
 ```
+
+## Dashboard
+
+<details>
+<summary>Grafana dashboard screenshots</summary>
+
+[Dashboard JSON](kubernetes/grafana/dashboard.json)
+
+![Grafana dashboard panel 1](kubernetes/grafana/Dashboard_Panel_00.png)
+
+![Grafana dashboard panel 2](kubernetes/grafana/Dashboard_Panel_01.png)
+
+![Grafana dashboard panel 3](kubernetes/grafana/Dashboard_Panel_02.png)
+
+![Grafana dashboard panel 4](kubernetes/grafana/Dashboard_Panel_03.png)
+
+</details>
+
 ## Troubleshooting
 
 <details>
