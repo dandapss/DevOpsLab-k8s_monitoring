@@ -74,15 +74,15 @@ flowchart TB
 <summary>What did I design it like that?</summary>
 
 <details>
-<summary>   Exporter</summary>
+<summary> Exporter </summary>
 
 1. Why implement custom metrics? <br>
-     This project was created to gain hands on expeerience with a complete DevOps monitoring workflow. <br>
+     This project was created to gain hands on experience with a complete DevOps monitoring workflow. <br>
      Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
       - How data is collected from the Kubernetes API
       - How metrics are exposed to Prometheus
       - How Prometheus stores and queries metrics
-      - How Grafana visualized operational data
+      - How Grafana visualizes operational data
 
 2. Deployment Readiness Percentage <br>
      Deployment status is calculated as:
@@ -95,7 +95,7 @@ flowchart TB
      |  Value  |  Meaning  |
      |---------|-----------|
      |   100   |  Fully Healthy |
-     |  1-99   |  Need to be Checked  |
+     |  1-99   |  Requires Attention  |
      |    0    |  No Available Replica  |
      |   -1    |  Replica Information Unavailable  |
 
@@ -105,7 +105,7 @@ flowchart TB
      ```python
      sum(status.restart_count for status in container_statuses)
      ```
-     I added this becuase operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
+     I added this because operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
 
 4. Kubernetes API Based Readiness Check  <br>
      In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response. <br>
@@ -115,14 +115,15 @@ flowchart TB
      It verifies
      - Kubernetes API availability
      - Authentication status
-     - RBAC permission
+     - RBAC permissions
      - API response latency
 
 </details>
 
 
-   <details>
-   <summary>   Github Actions</summary>
+<details>
+<summary> Github Actions </summary>
+     
 1. Why use jobs.changes? <br>
      The pipeline uses path based filtering to determine whether a container image rebuild is required <br>
      It reduces
@@ -132,28 +133,29 @@ flowchart TB
      Also it shortens CI execution time
 
 2. Manifest Validation Before Image Build <br>
-     It is perfermed before the Docker build stage
+     It is performed before the Docker build stage
      - YAML validation (yamllint)
      - Helm validation (helm lint)
-     This allows configuration errors to be detected early and prevents unnecessary image creation
+     This allows configuration errors to be detected early and prevents unnecessary image creation.
 
 3. Dual Image Tag Strategy (SHA + latest) <br>
      Commit SHA
      - Immutable
-     - Traceable
      - Unique
+     - Directly linked to a specific source code revision
      Latest
-     - Easy reference for operator
+     - Easy reference for operators
      - Indicates the most recent successful build
 
 4. GitOps Based Deployment <br>
      The pipeline does not directly deploy workloads to Kubernetes
-     - Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Apply in deployment <br>
+     - Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Deploy to Kubernetes <br>
      This keeps Git as the single source of truth and follows GitOps principles <br>
-     The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags <br>
+     The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags automatically <br>
 
 5. Why export Warning Events only? <br>
-     Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations
+     - Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations.
+     - By focusing on Warning Events, the dashboard highlights actionable operational issues such as ImagePullBackOff, FailedScheduling, and FailedMount.
 
 </details>
 
