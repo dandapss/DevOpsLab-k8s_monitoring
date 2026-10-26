@@ -73,10 +73,10 @@ flowchart TB
 <details>
 <summary>What did I design it like that?</summary>
 
-   <details>
-   <summary>   Exporter</summary>
+<details>
+<summary>   Exporter</summary>
 
-### 1. Why implement custom metrics? <br> ###
+1. Why implement custom metrics? <br>
      This project was created to gain hands on expeerience with a complete DevOps monitoring workflow. <br>
      Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
       - How data is collected from the Kubernetes API
@@ -84,10 +84,11 @@ flowchart TB
       - How Prometheus stores and queries metrics
       - How Grafana visualized operational data
 
-### 2. Deployment Readiness Percentage <br>
+2. Deployment Readiness Percentage <br>
      Deployment status is calculated as:
-     python
-    Ready Replicas / Desired Replicas * 100
+     ```python
+     Ready Replicas / Desired Replicas * 100
+     ```
     
      instead of simply checking whether the Deployment exists. <br>
      This allows operators to quickly identify the current deployment health status:
@@ -98,7 +99,7 @@ flowchart TB
      |    0    |  No Available Replica  |
      |   -1    |  Replica Information Unavailable  |
 
-### 3. Pod Restart Count From a Pod Perspective  <br>
+3. Pod Restart Count From a Pod Perspective  <br>
      Kubernetes provides restart counts per container. <br>
      Restart counts are aggregated at the Pod level: <br>
      ```python
@@ -106,7 +107,7 @@ flowchart TB
      ```
      I added this becuase operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
 
-### 4. Kubernetes API Based Readiness Check  <br>
+4. Kubernetes API Based Readiness Check  <br>
      In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response.  <br>
      ```python
      v1.list_namespace(limit=1, _request_timeout=5)
