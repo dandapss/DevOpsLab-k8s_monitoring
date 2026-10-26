@@ -73,30 +73,30 @@ flowchart TB
 <details>
 <summary>What did I design it like that?</summary>
 
-<details>
-<summary>Exporter</summary>
-1. Why implement custom metrics?
-   ' This project was created to gain hands on expeerience with a complete DevOps monitoring workflow.
-   ' Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
+   <details>
+   <summary>   Exporter</summary>
+
+1. Why implement custom metrics? <br>
+     This project was created to gain hands on expeerience with a complete DevOps monitoring workflow. <br>
+     Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
       - How data is collected from the Kubernetes API
       - How metrics are exposed to Prometheus
       - How Prometheus stores and queries metrics
       - How Grafana visualized operational data
 
-2. Deployment Readiness Percentage
-   ' Deployment status is calculated as:
+2. Deployment Readiness Percentage <br>
+     Deployment status is calculated as:
      ```python
      Ready Replicas / Desired Replicas * 100
      ```
-   ' instead of simply checking whether the Deployment exists.
-   ' This allows operators to quickly identify the current deployment health status:
+     instead of simply checking whether the Deployment exists. <br>
+     This allows operators to quickly identify the current deployment health status:
      |  Value  |  Meaning  |
      |---------|-----------|
      |   100   |  Fully Healthy |
      |  1-99   |  Partially Healthy  |
      |    0    |  No Available Replica  |
      |   -1    |  Replica Information Unavailable  |
-   ++Table
 
 3. Pod Restart Count From a Pod Perspective
    ' Kubernetes provides restart counts per container. 
@@ -119,8 +119,8 @@ flowchart TB
 
 </details>
 
-<details>
-<summary>Github Actions</summary>
+   <details>
+   <summary>   Github Actions</summary>
 1. Why use jobs.changes?
    ' The pipeline uses path based filtering to determine whether a container image rebuild is required
    ' It reduces
