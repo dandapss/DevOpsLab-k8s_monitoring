@@ -79,6 +79,7 @@ spec:
       labels:
         app: redis-test
     spec:
+      # Intentionally creating warning message
       containers:
       - name: no-image
         image: no-image:0.0

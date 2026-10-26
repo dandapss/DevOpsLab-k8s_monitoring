@@ -1,4 +1,105 @@
+Introduction
+- This projects demonstrates from understanding basic concept of kubernetes infrastructure until configuring it.
 
+Table of Contents
+1. Project Overview
+   1.1 What is this Project about?
+   1.2 Key Features
+      - Deployment Health Monitoring
+      - Pod Restart Tracking
+      - Pod Age Monitoring
+      - Event Monitoring
+      - GitHub Actions
+      - ArgoCD GitOps Deployment
+2. Architecture Overview
+   2.0 Whole architecture
+   2.1 Infrastructure Diagram
+   2.2 Technology Stack
+3. Dashboard Overview
+   3.1 Dashboard Summary (Whole Dashboard)
+   3.2 Explanation of each panel with picture (explanation about PromQL)
+4. Project Implementation
+   4.1 Local Environment
+     4.1.1 Kind
+     4.1.2 Docker Kubernetes
+     4.1.3 Docker Desktop Kubernetes
+   4.2 Monitoring Stack
+     4.2.1 Prometheus
+     4.2.2 Grafana
+   4.3 CI/CD
+     4.3.1 GitHub Actions
+     4.3.2 GHCR
+     4.3.3 ArgoCD
+   4.4 Custom Exporter
+     4.4.1 Explanation about metrics
+5. Troubleshooting
+   5.1 RBAC Permission Denied
+   5.2 Prometheus Target Down (503)
+   5.3 GHCR TLS Issue
+   5.4 Grafana Duplicate Metrics
+### Infos in Troubleshooting
+1. ArgoCD Sync Status Unknown
+Issue: Sync: Unknown
+Cause: Syntax error in jqPathExpressions
+  > original: .asd/asd/asd/asd
+  > fixed: .asd.asd.asd.asd
+
+2. Exporter Metrics No Appearing
+Issue: Newly created metric is not showing in prometheus
+Cause: Did not registered in Metric Registry
+
+3. Prometheus Target Down
+Issue: Prometheus Target Health is Down
+Cause: Exporter did not have permission
+  > Added permission in RBAC
+
+4. Grafana Dashboard Duplicate Rows
+Issue: Duplicated data were shown in Table Panel
+Cause: The dashboard was using Range Query
+   > Fixed: changed to Instant Query
+
+5. Liveness/Readiness Probe Failed
+Issue: HTTP probe failed with statuscode: 503 and kept creating events
+Cause: Failed to call Kubernetes API in /readyz
+
+6. GHCR Image Distribution in Kind Cluster
+Issue: Kind Cluster could not pull GHCR Image
+Cause: Internal TLS were blocking
+   > Fixed: manually pull and pushed into Kind Cluster
+     # docker pull "image name : image tag"
+     # kind load docker-image "image name : image tag" --name "kind cluster name"
+
+7. argocd admin password
+Issue: could not login with decoded secret password
+Cause: changed password in UI and the information is not updated in kubernetes
+   > Fixed: recreated secret for admin account
+
+###
+6. Lessons Learned
+7. Future Improvements
+
+
+
+Key Features
+- Setup
+- Understanding
+- Configuration
+- Monitoring
+
+Technic Overview
+- 
+- Docker
+- Kubernetes
+- Github Actions
+- ArgoCD
+- Prometheus
+- Grafana
+- Python
+
+
+
+
+###############################################################
 Scope of this week (Oct 19 ~ Oct 25)
 1. Add metrics and create dashboard
    - Restart Pods (pod.status.container_statuses)
