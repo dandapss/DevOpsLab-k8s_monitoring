@@ -68,22 +68,101 @@ flowchart TB
 
 </details>
 
-## Troubleshooting
+## Design Decisions
 
 <details>
-<summary>Issues resolved during the project</summary>
+<summary>What did I design it like that?</summary>
 
-- **Exporter returned 403:** added a dedicated ServiceAccount and read-only RBAC permissions.
-- **Prometheus showed no exporter targets:** aligned the Service label with the ServiceMonitor selector.
-- **node-exporter restarted in Docker Desktop:** disabled its host root filesystem mount for the local lab.
-- **Exporter HTTP server failed to start:** corrected the server initialization and rebuilt the image.
-- **Prometheus image inspection failed:** switched from the distroless image variant to the standard image.
+<details>
+<summary> Exporter </summary>
 
-More context is in [Troubleshoot.md](Troubleshoot.md).
+1. Why implement custom metrics? <br>
+     This project was created to gain hands on experience with a complete DevOps monitoring workflow. <br>
+     Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
+      - How data is collected from the Kubernetes API
+      - How metrics are exposed to Prometheus
+      - How Prometheus stores and queries metrics
+      - How Grafana visualizes operational data
+
+2. Deployment Readiness Percentage <br>
+     Deployment status is calculated as:
+     ```python
+     Ready Replicas / Desired Replicas * 100
+     ```
+    
+     instead of simply checking whether the Deployment exists. <br>
+     This allows operators to quickly identify the current deployment health status:
+     |  Value  |  Meaning  |
+     |---------|-----------|
+     |   100   |  Fully Healthy |
+     |  1-99   |  Requires Attention  |
+     |    0    |  No Available Replica  |
+     |   -1    |  Replica Information Unavailable  |
+
+3. Pod Restart Count From a Pod Perspective  <br>
+     Kubernetes provides restart counts per container. <br>
+     Restart counts are aggregated at the Pod level: <br>
+     ```python
+     sum(status.restart_count for status in container_statuses)
+     ```
+     I added this because operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
+
+4. Kubernetes API Based Readiness Check  <br>
+     In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response. <br>
+     ```python
+     v1.list_namespace(limit=1, _request_timeout=5)
+     ```
+     It verifies
+     - Kubernetes API availability
+     - Authentication status
+     - RBAC permissions
+     - API response latency
 
 </details>
 
-## What I learned
+
+<details>
+<summary> Github Actions </summary>
+     
+1. Why use jobs.changes? <br>
+     The pipeline uses path based filtering to determine whether a container image rebuild is required <br>
+     It reduces
+     - Unnecessary Docker builds
+     - Unnecessary Trivy scans
+     - Unnecessary image pushes
+     Also it shortens CI execution time
+
+2. Manifest Validation Before Image Build <br>
+     It is performed before the Docker build stage
+     - YAML validation (yamllint)
+     - Helm validation (helm lint)
+     This allows configuration errors to be detected early and prevents unnecessary image creation.
+
+3. Dual Image Tag Strategy (SHA + latest) <br>
+     Commit SHA
+     - Immutable
+     - Unique
+     - Directly linked to a specific source code revision
+     Latest
+     - Easy reference for operators
+     - Indicates the most recent successful build
+
+4. GitOps Based Deployment <br>
+     The pipeline does not directly deploy workloads to Kubernetes
+     - Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Deploy to Kubernetes <br>
+     This keeps Git as the single source of truth and follows GitOps principles <br>
+     The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags automatically <br>
+
+5. Why export Warning Events only? <br>
+     - Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations.
+     - By focusing on Warning Events, the dashboard highlights actionable operational issues such as ImagePullBackOff, FailedScheduling, and FailedMount.
+
+</details>
+
+
+</details>
+
+## Troubleshoot / Challenges
 
 <details>
 <summary>Local containers and Kubernetes labs</summary>
