@@ -73,50 +73,88 @@ flowchart TB
 <details>
 <summary>What did I design it like that?</summary>
 
-- Exporter
-1. Why custom metrics were implemented?
-  > This lab is to learn about devops infrastructure and hands on each part. I needed to understand the process of collecting data and metrics in order to use in Prometheus
+<details>
+<summary>Exporter</summary>
+1. Why implement custom metrics?
+   ' This project was created to gain hands on expeerience with a complete DevOps monitoring workflow.
+   ' Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
+      - How data is collected from the Kubernetes API
+      - How metrics are exposed to Prometheus
+      - How Prometheus stores and queries metrics
+      - How Grafana visualized operational data
 
-2. Deployment readiness percentage
-   > Administrator or operator can check current operating status
-     Normal 100% // Need to be Checked 1~99% // No replica inforamtion -1
+2. Deployment Readiness Percentage
+   ' Deployment status is calculated as:
+     ```python
+     Ready Replicas / Desired Replicas * 100
+     ```
+   ' instead of simply checking whether the Deployment exists.
+   ' This allows operators to quickly identify the current deployment health status:
+     |  Value  |  Meaning  |
+     |---------|-----------|
+     |   100   |  Fully Healthy |
+     |  1-99   |  Partially Healthy  |
+     |    0    |  No Available Replica  |
+     |   -1    |  Replica Information Unavailable  |
+   ++Table
 
-3. Pod restart count in pod perspective
-   > Kubernetes's restart count is based on containers
-   > Mostly, operator see the issue based on Pod instead of Container. 
+3. Pod Restart Count From a Pod Perspective
+   ' Kubernetes provides restart counts per container. 
+   ' Restart counts are aggregated at the Pod level:
+     ```python
+     sum(status.restart_count for status in container_statuses)
+     ```
+   ' I added this becuase operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
 
-4. v1.list_namespace(limit=1, _request_timeout=5)_
-   > This is to check Kubernetes API works or not
+4. Kubernetes API Based Readiness Check
+   ' In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response.
+     ```python
+     v1.list_namespace(limit=1, _request_timeout=5)
+     ```
+   ' It verifies
+     - Kubernetes API availability
+     - Authentication status
+     - RBAC permission
+     - API response latency
 
-- Github Actions
-1. What is jobs.change for?
-   > To check any Container Image related job is done
-   > To prevent any unnecessary process during CI
+</details>
+
+<details>
+<summary>Github Actions</summary>
+1. Why use jobs.changes?
+   ' The pipeline uses path based filtering to determine whether a container image rebuild is required
+   ' It reduces
+     - Unnecessary Docker builds
+     - Unnecessary Trivy scans
+     - Unnecessary image pushes
+   ' Also it shortens CI execution time
 
 2. Manifest Validation Before Image Build
-   > To check any manifest error before building the Image
-   
-3. Why used two image tags? (SHA and "latest")
-   > SHA is to give unique tag and automated update of the tag
-   > Also operator can track which commit deployed which image
-   > "latest" is for operator to see that it is the newest
+   ' It is perfermed before the Docker build stage
+     - YAML validation (yamllint)
+     - Helm validation (helm lint)
+   ' This allows configuration errors to be detected early and prevents unnecessary image creation
 
-4. What is jobs.update-image-tag for?
-   > GitOps Deployment Strategy
-   > Instead of applying each change, CI will update the tag information in values.yaml. 
-   > Adding [skip ip] to prevent infinite loop
-   > ArgoCD will detect the change and update on the infrastructure
+3. Dual Image Tag Strategy (SHA + latest)
+   ' Commit SHA
+     - Immutable
+     - Traceable
+     - Unique
+   ' Latest
+     - Easy reference for operator
+     - Indicates the most recent successful build
 
+4. GitOps Based Deployment
+   ' The pipeline does not directly deploy workloads to Kubernetes
+     > Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Apply in deployment
+   ' This keeps Git as the single source of truth and follows GitOps principles
+   ' The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags
 
+5. Why export Warning Events only?
+   ' Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations
 
+</details>
 
-- **Exporter returned 403:** added a dedicated ServiceAccount and read-only RBAC permissions.
-- **Prometheus showed no exporter targets:** aligned the Service label with the ServiceMonitor selector.
-- **node-exporter restarted in Docker Desktop:** disabled its host root filesystem mount for the local lab.
-- **Exporter HTTP server failed to start:** corrected the server initialization and rebuilt the image.
-- **Prometheus image inspection failed:** switched from the distroless image variant to the standard image.
-
-More context is in [Troubleshoot.md](Troubleshoot.md).
 
 </details>
 
