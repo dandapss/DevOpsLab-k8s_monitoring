@@ -76,7 +76,7 @@ flowchart TB
    <details>
    <summary>   Exporter</summary>
 
-1. Why implement custom metrics? <br>
+# 1. Why implement custom metrics? <br>
      This project was created to gain hands on expeerience with a complete DevOps monitoring workflow. <br>
      Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
       - How data is collected from the Kubernetes API
