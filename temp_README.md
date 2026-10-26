@@ -95,7 +95,7 @@ flowchart TB
      |  Value  |  Meaning  |
      |---------|-----------|
      |   100   |  Fully Healthy |
-     |  1-99   |  Partially Healthy  |
+     |  1-99   |  Need to be Checked  |
      |    0    |  No Available Replica  |
      |   -1    |  Replica Information Unavailable  |
 
@@ -108,7 +108,7 @@ flowchart TB
      I added this becuase operational troubleshooting is typically performed from a Pod perspective rather than an individual container perspective.
 
 4. Kubernetes API Based Readiness Check  <br>
-     In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response.  <br>
+     In Readiness probe, this exporter request 1 namespace instead of HTTP 200 response. <br>
      ```python
      v1.list_namespace(limit=1, _request_timeout=5)
      ```
@@ -120,39 +120,40 @@ flowchart TB
 
 </details>
 
+
    <details>
    <summary>   Github Actions</summary>
-1. Why use jobs.changes?
-   ' The pipeline uses path based filtering to determine whether a container image rebuild is required
-   ' It reduces
+1. Why use jobs.changes? <br>
+     The pipeline uses path based filtering to determine whether a container image rebuild is required <br>
+     It reduces
      - Unnecessary Docker builds
      - Unnecessary Trivy scans
      - Unnecessary image pushes
-   ' Also it shortens CI execution time
+     Also it shortens CI execution time
 
-2. Manifest Validation Before Image Build
-   ' It is perfermed before the Docker build stage
+2. Manifest Validation Before Image Build <br>
+     It is perfermed before the Docker build stage
      - YAML validation (yamllint)
      - Helm validation (helm lint)
-   ' This allows configuration errors to be detected early and prevents unnecessary image creation
+     This allows configuration errors to be detected early and prevents unnecessary image creation
 
-3. Dual Image Tag Strategy (SHA + latest)
-   ' Commit SHA
+3. Dual Image Tag Strategy (SHA + latest) <br>
+     Commit SHA
      - Immutable
      - Traceable
      - Unique
-   ' Latest
+     Latest
      - Easy reference for operator
      - Indicates the most recent successful build
 
-4. GitOps Based Deployment
-   ' The pipeline does not directly deploy workloads to Kubernetes
-     > Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Apply in deployment
-   ' This keeps Git as the single source of truth and follows GitOps principles
-   ' The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags
+4. GitOps Based Deployment <br>
+     The pipeline does not directly deploy workloads to Kubernetes
+     - Build Image → Push Image → Update Image tag in values.yaml → ArgoCD detects change → Apply in deployment <br>
+     This keeps Git as the single source of truth and follows GitOps principles <br>
+     The workflow also uses [skip ci] to prevent infinite CI loops when updating image tags <br>
 
-5. Why export Warning Events only?
-   ' Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations
+5. Why export Warning Events only? <br>
+     Normal Events were excluded because they generate large amounts of operational noise and provide limited value during incident investigations
 
 </details>
 
