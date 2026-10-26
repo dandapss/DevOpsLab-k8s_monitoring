@@ -76,7 +76,7 @@ flowchart TB
    <details>
    <summary>   Exporter</summary>
 
-### 1. Why implement custom metrics? <br>
+### 1. Why implement custom metrics? <br> ###
      This project was created to gain hands on expeerience with a complete DevOps monitoring workflow. <br>
      Instead of relying only on existing Kubernetes metrics, I implemented a custom exporter to better understand:
       - How data is collected from the Kubernetes API
@@ -86,9 +86,9 @@ flowchart TB
 
 ### 2. Deployment Readiness Percentage <br>
      Deployment status is calculated as:
-     ```python
-     Ready Replicas / Desired Replicas * 100
-     ```
+     python
+    Ready Replicas / Desired Replicas * 100
+    
      instead of simply checking whether the Deployment exists. <br>
      This allows operators to quickly identify the current deployment health status:
      |  Value  |  Meaning  |
