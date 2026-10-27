@@ -124,6 +124,22 @@ The home lab uses Docker Desktop Kubernetes and pulls the image from GHCR. The o
 ## Troubleshoot / Challenges
 
 <details>
+<summary>ImagePullBackOff in Kind Cluster</summary>
+Symptom: Pods remained in ImagePullBackOff state after deployment. <br>
+Investigation: 
+   - Verified GHCR image existed
+   - Tried curl in Pod to ghcr.io (TLS error)
+   - It worked to load the image into kind cluster
+Expecting cause: 
+   - Kind node is running inside the contaienr runtime and it could not access to GHCR due to company security system
+Resolution: Load images directly into the Kind cluster
+   > docker image [image name:image tag] <br>
+   > kind load docker-image [image name:image tag] --name [kind cluster name]
+
+</details>
+
+
+<details>
 <summary>Local containers and Kubernetes labs</summary>
 
 - Set up separate home and company labs with Docker Desktop Kubernetes and kind on WSL2.
