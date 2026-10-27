@@ -6,50 +6,7 @@ A personal project for collecting Kubernetes resource and Warning-event metrics.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  subgraph L[Local labs]
-    H[Home<br/>Docker Desktop + Docker Desktop Kubernetes]
-    W[Company<br/>Docker Desktop + WSL2 + kind<br/>GitHub TLS validation is temporarily disabled]
-  end
-
-  H -->|edit · commit · push| G[GitHub<br/>source · Helm chart · manifests]
-  W -->|edit · commit · push| G
-
-  G --> A[GitHub Actions<br/>validate changes · build and scan image when needed]
-  A -->|push exporter image| R[GHCR]
-  A -.->|commit updated image tag| G
-
-  G -->|Argo CD reads Git| C1
-  G -->|Argo CD reads Git| C2
-  R -->|image pull| C1
-  R -->|image pull| C2
-
-  subgraph C1[Home cluster · Argo CD + Helm]
-    API1[Kubernetes API] -. read-only RBAC .-> E1[Python exporter<br/>/metrics]
-    S1[ServiceMonitor] -. discovers endpoint .-> P1[Prometheus]
-    P1 -->|scrapes /metrics| E1
-    F1[Grafana] -->|queries| P1
-  end
-
-  subgraph C2[Company cluster · kind on WSL2 · Argo CD + Helm]
-    API2[Kubernetes API] -. read-only RBAC .-> E2[Python exporter<br/>/metrics]
-    S2[ServiceMonitor] -. discovers endpoint .-> P2[Prometheus]
-    P2 -->|scrapes /metrics| E2
-    F2[Grafana] -->|queries| P2
-  end
-
-  classDef lab fill:#eaf2fb,stroke:#8eacca,color:#202b3c
-  classDef source fill:#e9edf2,stroke:#aab5c2,color:#202b3c
-  classDef ci fill:#eee9f7,stroke:#b6a2d1,color:#202b3c
-  classDef registry fill:#e8f3ed,stroke:#96bba1,color:#202b3c
-  classDef monitor fill:#fff4e6,stroke:#d8b77e,color:#202b3c
-  class H,W lab
-  class G source
-  class A ci
-  class R registry
-  class E1,API1,S1,P1,F1,E2,API2,S2,P2,F2 monitor
-```
+<img width="814" height="1082" alt="diagram drawio" src="https://github.com/user-attachments/assets/e9c5c92e-7a52-4d38-bfe2-b6063686e4a1" />
 
 ## Dashboard
 
