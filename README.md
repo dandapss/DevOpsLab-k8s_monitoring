@@ -6,7 +6,7 @@ A personal project for collecting Kubernetes resource and Warning-event metrics.
 
 ## Architecture
 
-<img width="852" height="1102" alt="Final drawio" src="https://github.com/user-attachments/assets/646c84c2-af54-4838-86c0-94176ebccf4e" />
+<img width="852" height="1102" alt="Result222 drawio" src="https://github.com/user-attachments/assets/26962ee9-d94e-478a-a67d-79cd5e7799b6" />
 
 
 ## Dashboard
