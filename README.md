@@ -6,12 +6,7 @@ A personal project for collecting Kubernetes resource and Warning-event metrics.
 
 ## Architecture
 
-<img width="3400" height="4640" alt="Seob_Diagram_Final" src="https://github.com/user-attachments/assets/0c044991-8c00-4093-86f7-259cbd60ad5a" />
-<img width="2556" height="3486" alt="Seob_Diagram_enhanced" src="https://github.com/user-attachments/assets/cfe22606-c4e1-475d-973c-cb8d235353c0" />
-
 <img width="3408" height="4648" alt="Seob_Diagram_clear" src="https://github.com/user-attachments/assets/22c18414-14bb-4643-9d64-74e3abd3ec7a" />
-
-
 
 
 ## Dashboard
