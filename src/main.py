@@ -76,10 +76,17 @@ metrics_lock = Lock()
 
 def collect_metrics():
   print("Logging Check!!!")
-  pods = v1.list_pod_for_all_namespaces().items
-  deployments = apps1.list_deployment_for_all_namespaces().items
-  namespaces = v1.list_namespace().items
-  events = v1.list_event_for_all_namespaces().items
+  pods = v1.list_pod_for_all_namespaces(_request_timeout=5).items
+  deployments = apps1.list_deployment_for_all_namespaces(_request_timeout=5).items
+  namespaces = v1.list_namespace(_request_timeout=5).items
+  events = v1.list_event_for_all_namespaces(_request_timeout=5).items
+
+  deployments_by_namespace = {}
+  for deployment in deployments:
+    namespace_name = deployment.metadata.namespace
+    deployments_by_namespace[namespace_name] = (
+      deployments_by_namespace.get(namespace_name, 0) + 1
+    )
 
   pods_info.clear()
   deploy_info.clear()
@@ -139,8 +146,7 @@ def collect_metrics():
   for namespace in namespaces:
     Seob_NS_Name = namespace.metadata.name
     Seob_State= namespace.status.phase or "Unknown"
-    deployments = apps1.list_namespaced_deployment(Seob_NS_Name)
-    deployment_count = len(deployments.items)
+    deployment_count = deployments_by_namespace.get(Seob_NS_Name, 0)
 
     namespace_info.labels(
       NS_Name = Seob_NS_Name,
@@ -149,11 +155,12 @@ def collect_metrics():
 
   for event in events:
     if event.type == "Warning":
+      target = event.involved_object
       Seob_Namespace = event.involved_object.namespace
-      Seob_Resource = event.involved_object.kind
-      Seob_Name = event.involved_object.name
-      Seob_Reason = event.reason
-      Seob_Message = event.message
+      Seob_Resource = target.kind or "Unknown"
+      Seob_Name = target.name or "Unknown"
+      Seob_Reason = event.reason or "Unknown"
+      Seob_Message = event.message or "Unknown"
 
       resource_event_warning.labels(
         Namespace = Seob_Namespace,

@@ -95,17 +95,6 @@ data:
   owner: seob
 
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sample-secret
-  namespace: test-monitor
-type: Opaque
-data:
-  username: dGVzdA==
-  password: dGVzdDEyMw==
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

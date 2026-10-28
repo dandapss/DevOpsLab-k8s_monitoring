@@ -1,3 +1,5 @@
+# Temporary lab workaround for the corporate TLS certificate issue.
+# Remove this override after Argo CD trusts the corporate CA certificate chain.
 repoServer:
   env:
     - name: GIT_SSL_NO_VERIFY
