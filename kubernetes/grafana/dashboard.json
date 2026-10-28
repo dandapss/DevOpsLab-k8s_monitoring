@@ -235,7 +235,7 @@
           "refId": "A"
         }
       ],
-      "title": "Number of Warnings",
+      "title": "Warning Series in Selected Range",
       "type": "stat"
     },
     {
@@ -301,7 +301,7 @@
           "refId": "A"
         }
       ],
-      "title": "Recently changed Pod",
+      "title": "Most Recently Created Pod",
       "type": "stat"
     },
     {
@@ -1392,7 +1392,7 @@
               "refId": "A"
             }
           ],
-          "title": "Number of Pods",
+          "title": "Running Pods",
           "transformations": [
             {
               "id": "organize",

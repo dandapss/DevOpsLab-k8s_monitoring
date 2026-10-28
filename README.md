@@ -2,9 +2,11 @@
 
 ## Introduction
 
-A personal project for collecting Kubernetes resource and Warning-event metrics. A Python exporter reads cluster information and exposes it to Prometheus. The project uses GitHub Actions, GHCR, Helm, and Argo CD to deliver the application to two local Kubernetes labs.
+This project monitors Kubernetes with a Python exporter. It collects Pod status, image, age, and Pod-level restart counts; Deployment readiness; namespace status and Deployment counts; and Warning Events. Prometheus scrapes the exporter, and Grafana visualizes the metrics. GitHub Actions validates YAML and Helm, builds the image when its source or dependencies change, scans for fixable HIGH-severity vulnerabilities with Trivy, pushes the image to GHCR, and updates the Helm image tag. Argo CD syncs the chart from Git to my two local Kubernetes labs.
 
 ## Architecture
+
+The home lab uses Docker Desktop Kubernetes and pulls the image from GHCR. The office lab uses WSL2 and kind. The red GHCR `ImagePullBackOff` path in the diagram shows the earlier office TLS workaround; the current image pull test succeeds. The `GIT_SSL_NO_VERIFY` setting in [Argo CD values](kubernetes/argocd/values.yaml) is separate: it temporarily skips certificate verification when Argo CD's repo-server fetches the Git repository. It does not control GHCR image pulls. GitHub Actions also runs Trivy between image build and push; that detail is omitted from this high-level diagram.
 
 <img width="3408" height="4648" alt="Seob_Diagram_clear" src="https://github.com/user-attachments/assets/22c18414-14bb-4643-9d64-74e3abd3ec7a" />
 
@@ -74,7 +76,6 @@ A personal project for collecting Kubernetes resource and Warning-event metrics.
      - Kubernetes API availability
      - Authentication status
      - RBAC permissions
-     - API response latency
 
 </details>
 
