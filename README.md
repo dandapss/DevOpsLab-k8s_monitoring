@@ -136,15 +136,15 @@ While working in the office environment, several tools failed with TLS certifica
 
 **Attempts**
 - Tested Git access with SSL verification disabled.
-- Tested Helm repository access with --insecure-skip-tls-verify.
-- Configured GIT_SSL_NO_VERIFY in the Argo CD deployment.
+- Tested Helm repository access with `--insecure-skip-tls-verify`
+- Configured `GIT_SSL_NO_VERIFY` in the Argo CD deployment.
 - Created repository secrets manually.
 - Investigated both annotations and labels used by Argo CD repository secrets.
 
-**Findings**
-The corporate environment imposed TLS certificate restrictions that affected multiple Git based integrations
+**Findings** <br>
+The corporate environment imposed TLS certificate restrictions that affected multiple Git based integrations.
 
-**Resolution**
+**Resolution** <br>
 Configured temporary TLS verification bypass mechanisms where required and corrected the repository secret configuration so that Argo CD could recognize and connect to the repository.
 
 </details>
@@ -152,10 +152,10 @@ Configured temporary TLS verification bypass mechanisms where required and corre
 
 <details>
 <summary>Prometheus Could Not Discover Exporter Metrics</summary>
-Prometheus was unable to scrape metrics from the exporter even though the ServiceMonitor resource had been deployed successfully.
+Prometheus was unable to scrape metrics from the exporter even though the ServiceMonitor resource had been deployed successfully. <br>
 
 **Investigation**
-- Verified ServiceMonitor labels
+- Verified ServiceMonitor labels.
 - Verified Prometheus selectors.
 - Verified Service labels.
 - Verified Pod labels.
@@ -165,11 +165,11 @@ kubectl get endpoints -n helm-monitor
 ```
 - Observed that no endpoints were generated.
 
-**Findings**
-The exporter Pod remained in ImagePullBackOff state.<br>
-Because the Pod never became available, Kubernetes could not generate Service endpoints <br>
+**Findings** <br>
+The exporter Pod remained in `ImagePullBackOff` state.<br>
+Because the Pod never became available, Kubernetes could not generate Service endpoints. <br>
 
-**Resolution**
+**Resolution** <br>
 Pulled the image manually and loaded it into the kind cluster, allowing the exporter pod to start successfully and exposing the expected endpoints.
 
 </details>
@@ -177,26 +177,26 @@ Pulled the image manually and loaded it into the kind cluster, allowing the expo
 
 <details>
 <summary>Service Was Healthy But No Endpoints Were Created</summary>
-After resolving image pull issues, the Service still did not generate endpoints.
+After resolving image pull issues, the Service still did not generate endpoints. <br>
 
 **Investigation**
-- Verified Pod status
-- Rechecked Service selectors
-- Inspected generated Endpoints resources
-- Compared service ports and container ports
+- Verified Pod status.
+- Rechecked Service selectors.
+- Inspected generated Endpoints resources.
+- Compared service ports and container ports.
 
-**Findings**
-The Service targetPort did not match the containerPort exposed by the exporter.
+**Findings** <br>
+The Service targetPort did not match the containerPort exposed by the exporter. <br>
 
-**Resolution**
-Corrected the Service configuration so that targetPort matched the exporter containerPort
+**Resolution** <br>
+Corrected the Service configuration so that targetPort matched the exporter containerPort.
 
 </details>
 
 
 <details>
 <summary>Pod Remained in READY 0/1 State</summary>
-The exporter pod started successfully but never became Ready
+The exporter pod started successfully but never became Ready. <br>
 
 **Investigation**
 - Checked pod events
@@ -205,19 +205,19 @@ The exporter pod started successfully but never became Ready
 - Confirmed the /readyz endpoint existed in the source code
 - Compared deployed image versions with locally built images
 
-**Findings**
+**Findings** <br>
 A locally cached image with the latest tag was being reused instead of the newly built image. <br>
-As a result, the running container did not contain the expected application changes.
+As a result, the running container did not contain the expected application changes. <br>
 
-**Resolution**
-Updated the deployment workflow to reference SHA tagged images instead of relying on the latest tag, preventing stale cached images from being reused.
+**Resolution** <br>
+Updated the deployment workflow to reference *SHA* tagged images instead of relying on the *latest* tag, preventing stale cached images from being reused.
 
 </details>
 
 
 <details>
 <summary>Argo CD Could Not Connect to GitHub Repository</summary>
-Argo CD failed to register the Git repository required for GitOps synchronization.
+Argo CD failed to register the Git repository required for GitOps synchronization. <br>
 
 **Investigation**
 - Tested HTTPS access
@@ -229,9 +229,9 @@ Argo CD failed to register the Git repository required for GitOps synchronizatio
 
 **Findings**
 The repository secret was created incorrectly and was not recognized as an Argo CD repository secret. <br>
-In addition, several fields had been placed under annotations instead of their expected locations.
+In addition, several fields had been placed under annotations instead of their expected locations. <br>
 
-**Resolution**
+**Resolution** <br>
 Added the correct repository secret label and corrected the secret structure so that Argo CD could load the Git repository successfully.
 
 </details>
