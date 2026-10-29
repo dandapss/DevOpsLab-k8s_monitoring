@@ -1,4 +1,4 @@
-# Kubernetes Resource Monitoring
+# Kubernetes Monitoring
 
 ## Introduction
 
@@ -6,7 +6,7 @@ I build this project to understand with hands on learning platform for Kubernete
 
 ## Architecture
 
-This project is tested in two different local Kubernetes environments, Docker Desktop Kubernetes at home and a kind cluster running on WSL2 at the office. The office environment has experienced TLS related connectivity issues when accessing both GHCR and Git repositories. Because of this, container images are currently pulled and loaded into the cluster manually, and Argo CD is configured to bypass Git certificate verification as a temporary workaround.
+This project is tested in two different local Kubernetes environments, Docker Desktop Kubernetes at home and a kind cluster running on WSL2 at the office. The office environment has experienced TLS related connectivity issues when accessing both GHCR and Git repositories from kind cluster. Because of this, container images are currently pulled and loaded into the cluster manually, and Argo CD is configured to bypass Git certificate verification as a temporary workaround.
 
 
 <img width="3408" height="4648" alt="Seob_Diagram_clear" src="https://github.com/user-attachments/assets/22c18414-14bb-4643-9d64-74e3abd3ec7a" />
@@ -122,7 +122,7 @@ This project is tested in two different local Kubernetes environments, Docker De
 
 </details>
 
-## Troubleshoot / Challenges
+## Troubleshoot
 
 <details>
 <summary>Corporate TLS Restrictions Across GitOps Components</summary>

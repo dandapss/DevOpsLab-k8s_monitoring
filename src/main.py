@@ -1,5 +1,5 @@
 # Made by Me with little help of GPT
-# Last Update 25th of Oct. 2026
+# Last Update 28th of Oct. 2026
 
 import time
 from kubernetes import client, config
