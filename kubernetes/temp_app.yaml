@@ -82,8 +82,8 @@ spec:
     spec:
       # Intentionally creating warning message
       containers:
-      - name: no-image
-        image: no-image:0.0
+        - name: no-image
+          image: no-image:0.0
 
 ---
 apiVersion: v1

@@ -1,7 +1,6 @@
 # Temporary lab workaround for the corporate TLS certificate issue.
 # Remove this override after Argo CD trusts the corporate CA certificate chain.
-
-## Used Only for Office Lab 
+## Used Only for Office Lab
 # Last Update 29th of Oct. 2026 by Seob
 
 # repoServer:

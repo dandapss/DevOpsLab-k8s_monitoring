@@ -7,4 +7,4 @@ rules:
   line-length: disable
   document-start: disable
   truthy:
-   allowed-values: ['true', 'false', 'on']
+    allowed-values: ['true', 'false', 'on']
