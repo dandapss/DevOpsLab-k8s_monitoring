@@ -235,4 +235,3 @@ In addition, several fields had been placed under annotations instead of their e
 Added the correct repository secret label and corrected the secret structure so that Argo CD could load the Git repository successfully.
 
 </details>
-

@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name}}-deploy
-  namespace: {{ .Release.Namespace}}
+  name: {{ .Release.Name }}-deploy
+  namespace: {{ .Release.Namespace }}
   annotations:
     debug-tag: "{{ .Values.image.tag }}"
 spec:
@@ -31,7 +31,7 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           ports:
-            - containerPort: {{ .Values.container.port}}
+            - containerPort: {{ .Values.container.port }}
           livenessProbe:
             httpGet:
               path: /healthz

@@ -1,3 +1,4 @@
+# Last Update 29th of Oct. 2026 by Seob
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -73,11 +74,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redis-test
+      app: redis-test2
   template:
     metadata:
       labels:
-        app: redis-test
+        app: redis-test2
     spec:
       # Intentionally creating warning message
       containers:
