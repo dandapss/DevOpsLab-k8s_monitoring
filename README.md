@@ -2,11 +2,12 @@
 
 ## Introduction
 
-This project monitors Kubernetes with a Python exporter. It collects Pod status, image, age, and Pod-level restart counts; Deployment readiness; namespace status and Deployment counts; and Warning Events. Prometheus scrapes the exporter, and Grafana visualizes the metrics. GitHub Actions validates YAML and Helm, builds the image when its source or dependencies change, scans for fixable HIGH-severity vulnerabilities with Trivy, pushes the image to GHCR, and updates the Helm image tag. Argo CD syncs the chart from Git to my two local Kubernetes labs.
+I build this project to understand with hands on learning platform for Kubernetes and the surrounding ecosystem. Rather than focusing on a single application, the goal was to understand how Kubernetes, Helm, GitHub Actions, GHCR, Argo CD, Prometheus, and Grafana interact in a complete GitOps workflow. To achieve this, I developed a Python based exporter that collects Kubernetes workload data and exposes it as Prometheus metrics, which are then visualized in Grafana dashboard.
 
 ## Architecture
 
-The home lab uses Docker Desktop Kubernetes and pulls the image from GHCR. The office lab uses WSL2 and kind. The red GHCR `ImagePullBackOff` path in the diagram shows the earlier office TLS workaround; the current image pull test succeeds. The `GIT_SSL_NO_VERIFY` setting in [Argo CD values](kubernetes/argocd/values.yaml) is separate: it temporarily skips certificate verification when Argo CD's repo-server fetches the Git repository. It does not control GHCR image pulls. GitHub Actions also runs Trivy between image build and push; that detail is omitted from this high-level diagram.
+This project is tested in two different local Kubernetes environments, Docker Desktop Kubernetes at home and a kind cluster running on WSL2 at the office. The office environment has experienced TLS related connectivity issues when accessing both GHCR and Git repositories. Because of this, container images are currently pulled and loaded into the cluster manually, and Argo CD is configured to bypass Git certificate verification as a temporary workaround.
+
 
 <img width="3408" height="4648" alt="Seob_Diagram_clear" src="https://github.com/user-attachments/assets/22c18414-14bb-4643-9d64-74e3abd3ec7a" />
 
@@ -124,43 +125,114 @@ The home lab uses Docker Desktop Kubernetes and pulls the image from GHCR. The o
 ## Troubleshoot / Challenges
 
 <details>
-<summary>ImagePullBackOff in Kind Cluster</summary>
-Symptom: Pods remained in ImagePullBackOff state after deployment. <br>
-Investigation: 
-   - Verified GHCR image existed
-   - Tried curl in Pod to ghcr.io (TLS error)
-   - It worked to load the image into kind cluster
-Expecting cause: 
-   - Kind node is running inside the contaienr runtime and it could not access to GHCR due to company security system
-Resolution: Load images directly into the Kind cluster
-   > docker image [image name:image tag] <br>
-   > kind load docker-image [image name:image tag] --name [kind cluster name]
+<summary>Corporate TLS Restrictions Across GitOps Components</summary>
+While working in the office environment, several tools failed with TLS certificate validation errors, including Git, Helm, and Argo CD. <br>
+
+**Investigation**
+- Git clone failed with certificate verification errors.
+- Helm repository registration failed with x509 certificate validation errors.
+- Argo CD could not connect to GitHub repositories.
+- SSH based repository access was investigated but could not be used due to corporate restrictions.
+
+**Attempts**
+- Tested Git access with SSL verification disabled.
+- Tested Helm repository access with --insecure-skip-tls-verify.
+- Configured GIT_SSL_NO_VERIFY in the Argo CD deployment.
+- Created repository secrets manually.
+- Investigated both annotations and labels used by Argo CD repository secrets.
+
+**Findings**
+The corporate environment imposed TLS certificate restrictions that affected multiple Git based integrations
+
+**Resolution**
+Configured temporary TLS verification bypass mechanisms where required and corrected the repository secret configuration so that Argo CD could recognize and connect to the repository.
 
 </details>
 
 
 <details>
-<summary>Local containers and Kubernetes labs</summary>
+<summary>Prometheus Could Not Discover Exporter Metrics</summary>
+Prometheus was unable to scrape metrics from the exporter even though the ServiceMonitor resource had been deployed successfully.
 
-- Set up separate home and company labs with Docker Desktop Kubernetes and kind on WSL2.
-- Built and published a Python exporter image to GHCR.
+**Investigation**
+- Verified ServiceMonitor labels
+- Verified Prometheus selectors.
+- Verified Service labels.
+- Verified Pod labels.
+- Checked endpoints:
+```cli
+kubectl get endpoints -n helm-monitor
+```
+- Observed that no endpoints were generated.
+
+**Findings**
+The exporter Pod remained in ImagePullBackOff state.<br>
+Because the Pod never became available, Kubernetes could not generate Service endpoints <br>
+
+**Resolution**
+Pulled the image manually and loaded it into the kind cluster, allowing the exporter pod to start successfully and exposing the expected endpoints.
 
 </details>
+
 
 <details>
-<summary>GitHub Actions and GitOps</summary>
+<summary>Service Was Healthy But No Endpoints Were Created</summary>
+After resolving image pull issues, the Service still did not generate endpoints.
 
-- Used GitHub Actions to validate changes and build the image only for relevant source changes.
-- Added image scanning and Helm image tag updates to the delivery flow.
-- Connected the Helm deployment to Argo CD so cluster state is managed from Git.
+**Investigation**
+- Verified Pod status
+- Rechecked Service selectors
+- Inspected generated Endpoints resources
+- Compared service ports and container ports
+
+**Findings**
+The Service targetPort did not match the containerPort exposed by the exporter.
+
+**Resolution**
+Corrected the Service configuration so that targetPort matched the exporter containerPort
 
 </details>
+
 
 <details>
-<summary>Prometheus and Grafana</summary>
+<summary>Pod Remained in READY 0/1 State</summary>
+The exporter pod started successfully but never became Ready
 
-- Exposed exporter metrics and configured Prometheus discovery through a ServiceMonitor.
-- Practiced PromQL queries, including handling duplicate series with `max without`.
-- Explored Grafana panels using the metrics collected by the project.
+**Investigation**
+- Checked pod events
+- Inspected readiness probe configuration
+- Verified probe path and port configuration
+- Confirmed the /readyz endpoint existed in the source code
+- Compared deployed image versions with locally built images
+
+**Findings**
+A locally cached image with the latest tag was being reused instead of the newly built image. <br>
+As a result, the running container did not contain the expected application changes.
+
+**Resolution**
+Updated the deployment workflow to reference SHA tagged images instead of relying on the latest tag, preventing stale cached images from being reused.
 
 </details>
+
+
+<details>
+<summary>Argo CD Could Not Connect to GitHub Repository</summary>
+Argo CD failed to register the Git repository required for GitOps synchronization.
+
+**Investigation**
+- Tested HTTPS access
+- Tested SSH based authentication
+- Created repository secrets manually
+- Verified Argo CD repository resources
+- Inspected generated Kubernetes secrets
+- Compared labels and annotations used by working and non working repository definitions
+
+**Findings**
+The repository secret was created incorrectly and was not recognized as an Argo CD repository secret. <br>
+In addition, several fields had been placed under annotations instead of their expected locations.
+
+**Resolution**
+Added the correct repository secret label and corrected the secret structure so that Argo CD could load the Git repository successfully.
+
+</details>
+
