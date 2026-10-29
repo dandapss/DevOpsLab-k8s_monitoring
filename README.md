@@ -32,7 +32,7 @@ This project is tested in two different local Kubernetes environments, Docker De
 ## Design Decisions
 
 <details>
-<summary>What did I design it like that?</summary>
+<summary>Why did I design it like that?</summary>
 
 <details>
 <summary> Exporter </summary>
@@ -126,7 +126,7 @@ This project is tested in two different local Kubernetes environments, Docker De
 
 <details>
 <summary>Corporate TLS Restrictions Across GitOps Components</summary>
-While working in the office environment, several tools failed with TLS certificate validation errors, including Git, Helm, and Argo CD. <br>
+While working in the office environment, several tools failed with TLS certificate validation errors, including Git, Helm, and Argo CD. <br><br>
 
 **Investigation**
 - Git clone failed with certificate verification errors.
@@ -152,7 +152,7 @@ Configured temporary TLS verification bypass mechanisms where required and corre
 
 <details>
 <summary>Prometheus Could Not Discover Exporter Metrics</summary>
-Prometheus was unable to scrape metrics from the exporter even though the ServiceMonitor resource had been deployed successfully. <br>
+Prometheus was unable to scrape metrics from the exporter even though the ServiceMonitor resource had been deployed successfully. <br><br>
 
 **Investigation**
 - Verified ServiceMonitor labels.
@@ -177,7 +177,7 @@ Pulled the image manually and loaded it into the kind cluster, allowing the expo
 
 <details>
 <summary>Service Was Healthy But No Endpoints Were Created</summary>
-After resolving image pull issues, the Service still did not generate endpoints. <br>
+After resolving image pull issues, the Service still did not generate endpoints. <br><br>
 
 **Investigation**
 - Verified Pod status.
@@ -196,7 +196,7 @@ Corrected the Service configuration so that targetPort matched the exporter cont
 
 <details>
 <summary>Pod Remained in READY 0/1 State</summary>
-The exporter pod started successfully but never became Ready. <br>
+The exporter pod started successfully but never became Ready. <br><br>
 
 **Investigation**
 - Checked pod events
@@ -217,7 +217,7 @@ Updated the deployment workflow to reference *SHA* tagged images instead of rely
 
 <details>
 <summary>Argo CD Could Not Connect to GitHub Repository</summary>
-Argo CD failed to register the Git repository required for GitOps synchronization. <br>
+Argo CD failed to register the Git repository required for GitOps synchronization. <br><br>
 
 **Investigation**
 - Tested HTTPS access
